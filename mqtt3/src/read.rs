@@ -43,6 +43,7 @@ pub trait MqttRead: ReadBytesExt {
                 Ok(Packet::Puback(PacketIdentifier(pid)))
             },
             PacketType::Subscribe => Ok(Packet::Subscribe(try!(raw_packet.read_subscribe(header)))),
+            PacketType::Suback => Ok(Packet::Suback(try!(raw_packet.read_suback(header)))),
             PacketType::Unsubscribe => Ok(Packet::Unsubscribe(try!(raw_packet.read_unsubscribe(header)))),
             PacketType::Pingreq => Err(Error::IncorrectPacketFormat),
             PacketType::Pingresp => Err(Error::IncorrectPacketFormat),
@@ -156,6 +157,23 @@ pub trait MqttRead: ReadBytesExt {
         }))
     }
 
+    fn read_suback(&mut self, header: Header) -> Result<Arc<Suback>> {
+        let pid = try!(self.read_u16::<BigEndian>());
+        let mut remaining_bytes = header.len - 2;
+        let mut return_codes = Vec::with_capacity(remaining_bytes);
+
+        while remaining_bytes > 0 {
+            let return_code = try!(self.read_u8());
+            return_codes.push((return_code >> 7 == 1, try!(QoS::from_u8(return_code & 0x3))));
+            remaining_bytes -= 1
+        };
+
+        Ok(Arc::new(Suback {
+            pid: PacketIdentifier(pid),
+            return_codes: return_codes
+        }))
+    }
+
     fn read_unsubscribe(&mut self, header: Header) -> Result<Arc<Unsubscribe>> {
         let pid = try!(self.read_u16::<BigEndian>());
         let mut remaining_bytes = header.len - 2;
@@ -223,6 +241,7 @@ mod test {
         Connack,
         Publish,
         Subscribe,
+        Suback,
         Unsubscribe
     };
 
@@ -387,6 +406,22 @@ mod test {
                 "#".to_owned(),
                 "a/b/c".to_owned()
             ]
+        })));
+    }
+
+    #[test]
+    fn read_packet_suback_test() {
+        let mut stream = Cursor::new(vec![
+            0x90, 4,
+            0x00, 0x0F, // pid = 15
+            0x01, 0x80
+        ]);
+
+        let packet = stream.read_packet().unwrap();
+
+        assert_eq!(packet, Packet::Suback(Arc::new(Suback {
+            pid: PacketIdentifier(15),
+            return_codes: vec![(false, QoS::AtLeastOnce), (true, QoS::AtMostOnce)]
         })));
     }
 }

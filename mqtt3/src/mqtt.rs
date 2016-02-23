@@ -57,6 +57,7 @@ pub struct Subscribe {
 pub struct Suback {
     pub pid: PacketIdentifier,
 	// (error, qos)
+	// TODO: replace with enum
 	pub return_codes: Vec<(bool, QoS)>
 }
 
