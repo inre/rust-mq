@@ -2,7 +2,8 @@
 name = "mqtt3"
 version = "0.1.0"
 authors = ["Maksim V. <inre.storm@gmail.com>"]
-description = "Mqtt3 is the crate to read/write MQTT-packet from/to the stream."
+description = "Mqtt3 is the crate to read/write MQTT-packet from/to a stream."
+repository = "https://github.com/inre/rust-mq"
 license = "MIT"
 
 [dependencies]
