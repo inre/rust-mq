@@ -93,7 +93,21 @@ pub trait MqttWrite: WriteBytesExt {
                 Ok(())
             },
 			&Packet::Pubcomp(_) => Err(Error::UnsupportedPacketType),
-			&Packet::Subscribe(_) => Err(Error::UnsupportedPacketType),
+			&Packet::Subscribe(ref subscribe) => {
+                try!(self.write(&[0x82]));
+                let mut len = 2;
+                let topics: &Vec<(String, QoS)> = subscribe.topics.as_ref();
+                for &(ref topic, _) in topics {
+                    len += topic.len() + 3
+                }
+                try!(self.write_remaining_length(len));
+                try!(self.write_u16::<BigEndian>(subscribe.pid.0));
+                for &(ref topic, ref qos) in topics {
+                    try!(self.write_mqtt_string(topic.as_str()));
+                    try!(self.write_u8(qos.to_u8()));
+                }
+                Ok(())
+            },
 			&Packet::Suback(ref suback) => {
                 try!(self.write(&[0x90]));
                 try!(self.write_remaining_length(suback.return_codes.len() + 2));
@@ -165,7 +179,8 @@ mod test {
         Packet,
         Connect,
         Connack,
-        Publish
+        Publish,
+        Subscribe
     };
 
     #[test]
@@ -253,5 +268,30 @@ mod test {
         stream.write_packet(&publish);
 
         assert_eq!(stream.get_ref().clone(), vec![0b00110010, 11, 0x00, 0x03, 'a' as u8, '/' as u8, 'b' as u8, 0x00, 0x0a, 0xF1, 0xF2, 0xF3, 0xF4]);
+    }
+
+    #[test]
+    fn write_packet_subscribe_test() {
+        let subscribe = Packet::Subscribe(Arc::new(Subscribe {
+            pid: PacketIdentifier(260),
+            topics: vec![
+                ("a/+".to_owned(), QoS::AtMostOnce),
+                ("#".to_owned(), QoS::AtLeastOnce),
+                ("a/b/c".to_owned(), QoS::ExactlyOnce)
+            ]
+        }));
+
+        let mut stream = Cursor::new(Vec::new());
+        stream.write_packet(&subscribe);
+
+        assert_eq!(stream.get_ref().clone(),vec![0b10000010, 20,
+            0x01, 0x04, // pid = 260
+            0x00, 0x03, 'a' as u8, '/' as u8, '+' as u8, // topic filter = 'a/+'
+            0x00, // qos = 0
+            0x00, 0x01, '#' as u8, // topic filter = '#'
+            0x01, // qos = 1
+            0x00, 0x05, 'a' as u8, '/' as u8, 'b' as u8, '/' as u8, 'c' as u8, // topic filter = 'a/b/c'
+            0x02 // qos = 2
+        ]);
     }
 }
