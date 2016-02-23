@@ -201,10 +201,22 @@ impl ConnectReturnCode {
             ConnectReturnCode::NotAuthorized => 5
         }
     }
+
+    pub fn from_u8(byte: u8) -> Result<ConnectReturnCode> {
+        match byte {
+            0 => Ok(ConnectReturnCode::Accepted),
+            1 => Ok(ConnectReturnCode::RefusedProtocolVersion),
+            2 => Ok(ConnectReturnCode::RefusedIdentifierRejected),
+            3 => Ok(ConnectReturnCode::ServerUnavailable),
+            4 => Ok(ConnectReturnCode::BadUsernamePassword),
+            5 => Ok(ConnectReturnCode::NotAuthorized),
+            _ => Err(Error::UnsupportedConnectReturnCode)
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct PacketIdentifier(u16);
+pub struct PacketIdentifier(pub u16);
 
 impl PacketIdentifier {
     pub fn zero() -> PacketIdentifier {

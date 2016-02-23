@@ -3,7 +3,7 @@ use error::{Error, Result};
 use std::io::{BufReader, Read, Take, Cursor};
 use std::net::TcpStream;
 use std::sync::Arc;
-use super::{PacketType, Header, QoS, LastWill, Protocol, PacketIdentifier, MULTIPLIER};
+use super::{PacketType, Header, QoS, LastWill, Protocol, PacketIdentifier, ConnectReturnCode, MULTIPLIER};
 
 use mqtt::{
     Packet,
@@ -96,7 +96,12 @@ pub trait MqttRead: ReadBytesExt {
     }
 
     fn read_connack(&mut self, header: Header) -> Result<Connack> {
-        Err(Error::UnsupportedPacketType)
+        let flags = try!(self.read_u8());
+        let return_code = try!(self.read_u8());
+        Ok(Connack {
+            session_present: (flags & 0x01) == 1,
+            code: try!(ConnectReturnCode::from_u8(return_code))
+        })
     }
 
     fn read_publish(&mut self, header: Header) -> Result<Arc<Publish>> {
@@ -265,6 +270,17 @@ mod test {
             username: None,
             password: None
         })));
+    }
+
+    #[test]
+    fn read_packet_connack_test() {
+        let mut stream = Cursor::new(vec![0b00100000, 0x02, 0x01, 0x00]);
+        let packet = stream.read_packet().unwrap();
+
+        assert_eq!(packet, Packet::Connack(Connack {
+            session_present: true,
+            code: ConnectReturnCode::Accepted
+        }));
     }
 
     #[test]
