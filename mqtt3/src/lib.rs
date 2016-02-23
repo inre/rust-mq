@@ -53,6 +53,13 @@ impl Protocol {
             &Protocol::MQTT(_) => "MQTT"
         }
     }
+
+    pub fn level(&self) -> u8 {
+        match self {
+            &Protocol::MQIsdp(level) => level,
+            &Protocol::MQTT(level) => level
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -259,6 +266,8 @@ mod test {
         assert_eq!(Protocol::new("MQIsdp", 3).unwrap(), Protocol::MQIsdp(3));
         assert_eq!(Protocol::MQIsdp(3).name(), "MQIsdp");
         assert_eq!(Protocol::MQTT(4).name(), "MQTT");
+        assert_eq!(Protocol::MQTT(3).level(), 3);
+        assert_eq!(Protocol::MQTT(4).level(), 4);
     }
 
     #[test]

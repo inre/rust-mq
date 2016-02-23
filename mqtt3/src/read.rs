@@ -46,7 +46,7 @@ pub trait MqttRead: ReadBytesExt {
     fn read_connect(&mut self, header: Header) -> Result<Arc<Connect>> {
         let protocol_name = try!(self.read_mqtt_string());
         let protocol_level = try!(self.read_u8());
-        let protocol = try!(Protocol::new(protocol_name, protocol_level));
+        let protocol = try!(Protocol::new(protocol_name.as_ref(), protocol_level));
 
         let connect_flags = try!(self.read_u8());
         let keep_alive = try!(self.read_u16::<BigEndian>());
