@@ -12,6 +12,7 @@ pub enum Error {
     UnsupportedQualityOfService,
     UnsupportedPacketType,
     UnsupportedConnectReturnCode,
+    PayloadSizeIncorrect,
     PayloadTooLong,
     PayloadRequired,
     MalformedRemainingLength,

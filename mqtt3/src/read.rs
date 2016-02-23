@@ -35,6 +35,13 @@ pub trait MqttRead: ReadBytesExt {
             PacketType::Connect => Ok(Packet::Connect(try!(raw_packet.read_connect(header)))),
             PacketType::Connack => Ok(Packet::Connack(try!(raw_packet.read_connack(header)))),
             PacketType::Publish => Ok(Packet::Publish(try!(raw_packet.read_publish(header)))),
+            PacketType::Puback => {
+                if len != 2 {
+                    return Err(Error::PayloadSizeIncorrect)
+                }
+                let pid = try!(raw_packet.read_u16::<BigEndian>());
+                Ok(Packet::Puback(PacketIdentifier(pid)))
+            },
             PacketType::Subscribe => Ok(Packet::Subscribe(try!(raw_packet.read_subscribe(header)))),
             PacketType::Unsubscribe => Ok(Packet::Unsubscribe(try!(raw_packet.read_unsubscribe(header)))),
             PacketType::Pingreq => Err(Error::IncorrectPacketFormat),
@@ -96,6 +103,9 @@ pub trait MqttRead: ReadBytesExt {
     }
 
     fn read_connack(&mut self, header: Header) -> Result<Connack> {
+        if header.len != 2 {
+            return Err(Error::PayloadSizeIncorrect)
+        }
         let flags = try!(self.read_u8());
         let return_code = try!(self.read_u8());
         Ok(Connack {
@@ -206,10 +216,11 @@ mod test {
     use std::io::Cursor;
     use std::sync::Arc;
     use super::MqttRead;
-    use super::super::{Protocol, LastWill, QoS, PacketIdentifier};
+    use super::super::{Protocol, LastWill, QoS, PacketIdentifier, ConnectReturnCode};
     use super::super::mqtt::{
         Packet,
         Connect,
+        Connack,
         Publish,
         Subscribe,
         Unsubscribe
@@ -322,6 +333,14 @@ mod test {
             pid: None,
             payload: Arc::new(vec![0x01, 0x02])
         })));
+    }
+
+    #[test]
+    fn read_packet_puback_test() {
+        let mut stream = Cursor::new(vec![0b01000000, 0x02, 0x00, 0x0A]);
+        let packet = stream.read_packet().unwrap();
+
+        assert_eq!(packet, Packet::Puback(PacketIdentifier(10)));
     }
 
     #[test]
