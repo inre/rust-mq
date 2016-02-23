@@ -17,7 +17,54 @@ use mqtt::{
 pub trait MqttWrite: WriteBytesExt {
     fn write_packet(&mut self, packet: &Packet) -> Result<()> {
         match packet {
-            &Packet::Connect(_) => Err(Error::UnsupportedPacketType),
+            &Packet::Connect(ref connect) => {
+                try!(self.write_u8(0b00010000));
+                let prot_name = connect.protocol.name();
+                let mut len = 8 + prot_name.len() + connect.client_id.len();
+                if let Some(ref last_will) = connect.last_will {
+                    len += 4 + last_will.topic.len() + last_will.message.len();
+                }
+                if let Some(ref username) = connect.username {
+                    len += 2 + username.len();
+                }
+                if let Some(ref password) = connect.password {
+                    len += 2 + password.len();
+                }
+                try!(self.write_remaining_length(len));
+                try!(self.write_mqtt_string(prot_name));
+                try!(self.write_u8(connect.protocol.level()));
+                let mut connect_flags = 0;
+                if connect.clean_session {
+                    connect_flags |= 0x02;
+                }
+                if let Some(ref last_will) = connect.last_will {
+                    connect_flags |= 0x04;
+                    connect_flags |= last_will.qos.to_u8() << 3;
+                    if last_will.retain {
+                        connect_flags |= 0x20;
+                    }
+                }
+                if let Some(_) = connect.password {
+                    connect_flags |= 0x40;
+                }
+                if let Some(_) = connect.username {
+                    connect_flags |= 0x80;
+                }
+                try!(self.write_u8(connect_flags));
+                try!(self.write_u16::<BigEndian>(connect.keep_alive));
+                try!(self.write_mqtt_string(connect.client_id.as_ref()));
+                if let Some(ref last_will) = connect.last_will {
+                    try!(self.write_mqtt_string(last_will.topic.as_ref()));
+                    try!(self.write_mqtt_string(last_will.message.as_ref()));
+                }
+                if let Some(ref username) = connect.username {
+                    try!(self.write_mqtt_string(username));
+                }
+                if let Some(ref password) = connect.password {
+                    try!(self.write_mqtt_string(password));
+                }
+                Ok(())
+            },
 			&Packet::Connack(ref connack) => {
                 try!(self.write(&[0x20, 0x02, connack.session_present as u8, connack.code.to_u8()]));
                 Ok(())
@@ -116,9 +163,67 @@ mod test {
     use super::super::{Protocol, LastWill, QoS, PacketIdentifier, ConnectReturnCode};
     use super::super::mqtt::{
         Packet,
+        Connect,
         Connack,
         Publish
     };
+
+    #[test]
+    fn write_packet_connect_mqtt_protocol_test() {
+        let connect = Packet::Connect(Arc::new(Connect {
+            protocol: Protocol::MQTT(4),
+            keep_alive: 10,
+            client_id: "test".to_owned(),
+            clean_session: true,
+            last_will: Some(LastWill {
+                topic: "/a".to_owned(),
+                message: "offline".to_owned(),
+                retain: false,
+                qos: QoS::AtLeastOnce
+            }),
+            username: Some("rust".to_owned()),
+            password: Some("mq".to_owned())
+        }));
+
+        let mut stream = Cursor::new(Vec::new());
+        stream.write_packet(&connect);
+
+        assert_eq!(stream.get_ref().clone(), vec![0x10, 39,
+            0x00, 0x04, 'M' as u8, 'Q' as u8, 'T' as u8, 'T' as u8,
+            0x04,
+            0b11001110, // +username, +password, -will retain, will qos=1, +last_will, +clean_session
+            0x00, 0x0a, // 10 sec
+            0x00, 0x04, 't' as u8, 'e' as u8, 's' as u8, 't' as u8, // client_id
+            0x00, 0x02, '/' as u8, 'a' as u8, // will topic = '/a'
+            0x00, 0x07, 'o' as u8, 'f' as u8, 'f' as u8, 'l' as u8, 'i' as u8, 'n' as u8, 'e' as u8, // will msg = 'offline'
+            0x00, 0x04, 'r' as u8, 'u' as u8, 's' as u8, 't' as u8, // username = 'rust'
+            0x00, 0x02, 'm' as u8, 'q' as u8 // password = 'mq'
+        ]);
+    }
+
+    #[test]
+    fn write_packet_connect_mqisdp_protocol_test() {
+        let connect = Packet::Connect(Arc::new(Connect {
+            protocol: Protocol::MQIsdp(3),
+            keep_alive: 60,
+            client_id: "test".to_owned(),
+            clean_session: false,
+            last_will: None,
+            username: None,
+            password: None
+        }));
+
+        let mut stream = Cursor::new(Vec::new());
+        stream.write_packet(&connect);
+
+        assert_eq!(stream.get_ref().clone(), vec![0x10, 18,
+            0x00, 0x06, 'M' as u8, 'Q' as u8, 'I' as u8, 's' as u8, 'd' as u8, 'p' as u8,
+            0x03,
+            0b00000000, // -username, -password, -will retain, will qos=0, -last_will, -clean_session
+            0x00, 0x3c, // 60 sec
+            0x00, 0x04, 't' as u8, 'e' as u8, 's' as u8, 't' as u8 // client_id
+        ]);
+    }
 
     #[test]
     fn write_packet_connack_test() {
