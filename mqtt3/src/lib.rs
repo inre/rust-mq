@@ -33,8 +33,8 @@ pub enum Protocol {
 }
 
 impl Protocol {
-    pub fn new(name: String, level: u8) -> Result<Protocol> {
-        match name.as_ref() {
+    pub fn new(name: &str, level: u8) -> Result<Protocol> {
+        match name {
             "MQIsdp" => match level {
                 3 => Ok(Protocol::MQIsdp(3)),
                 _ => Err(Error::UnsupportedProtocolVersion)
@@ -44,6 +44,13 @@ impl Protocol {
                 _ => Err(Error::UnsupportedProtocolVersion)
             },
             _ => Err(Error::UnsupportedProtocolName)
+        }
+    }
+
+    pub fn name(&self) -> &'static str {
+        match self {
+            &Protocol::MQIsdp(_) => "MQIsdp",
+            &Protocol::MQTT(_) => "MQTT"
         }
     }
 }
@@ -244,7 +251,15 @@ pub struct LastWill {
 
 #[cfg(test)]
 mod test {
-    use super::QoS;
+    use super::{QoS, Protocol};
+
+    #[test]
+    fn protocol_test() {
+        assert_eq!(Protocol::new("MQTT", 4).unwrap(), Protocol::MQTT(4));
+        assert_eq!(Protocol::new("MQIsdp", 3).unwrap(), Protocol::MQIsdp(3));
+        assert_eq!(Protocol::MQIsdp(3).name(), "MQIsdp");
+        assert_eq!(Protocol::MQTT(4).name(), "MQTT");
+    }
 
     #[test]
     fn qos_min_test() {
