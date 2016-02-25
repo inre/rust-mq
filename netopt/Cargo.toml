@@ -1,0 +1,13 @@
+[package]
+name = "netopt"
+version = "0.1.0"
+authors = ["Maksim V. <inre.storm@gmail.com>"]
+license = "MIT"
+
+[features]
+default = ["ssl"]
+ssl = ["openssl"]
+
+[dependencies]
+openssl = { version = "*", optional = true }
+mqtt3 = { path = "../mqtt3" }
