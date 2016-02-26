@@ -6,6 +6,7 @@ extern crate openssl;
 mod ssl;
 mod tcp;
 pub mod mock;
+pub mod conn;
 
 pub use tcp::{
     NetworkOptions,
