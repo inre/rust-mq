@@ -1,7 +1,6 @@
 use std::sync::Arc;
 use std::vec::Vec;
-use error::{Error, Result};
-use {Publish, TopicPath, PacketIdentifier, QoS, LastWill};
+use {Publish, TopicPath, PacketIdentifier, QoS, LastWill, Error, Result};
 
 #[derive(Debug, Clone)]
 pub struct Message {

@@ -1,11 +1,16 @@
 extern crate byteorder;
 
-pub mod error;
+mod error;
 mod mqtt;
 mod read;
 mod write;
 mod topic;
 mod msg;
+
+pub use error::{
+    Error,
+    Result
+};
 
 pub use msg::{
     Message
@@ -33,7 +38,6 @@ pub use write::MqttWrite;
 const MULTIPLIER: usize = 0x80 * 0x80 * 0x80;
 const MAX_PAYLOAD_SIZE: usize = 268435455;
 
-use error::{Error, Result};
 use std::fmt;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

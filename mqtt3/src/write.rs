@@ -1,8 +1,7 @@
 use byteorder::{WriteBytesExt, BigEndian};
-use error::{Error, Result};
 use std::io::{BufWriter, Write, Cursor};
 use std::net::TcpStream;
-use {Packet, QoS, MAX_PAYLOAD_SIZE};
+use {Packet, QoS, Error, Result, MAX_PAYLOAD_SIZE};
 
 pub trait MqttWrite: WriteBytesExt {
     fn write_packet(&mut self, packet: &Packet) -> Result<()> {

@@ -2,8 +2,8 @@ use std::io::{BufReader, Read, Take, Cursor};
 use std::net::TcpStream;
 use std::sync::Arc;
 use byteorder::{ReadBytesExt, BigEndian};
-use error::{Error, Result};
-use {PacketType, Header, QoS, LastWill, Protocol, PacketIdentifier, ConnectReturnCode, MULTIPLIER};
+use {Error, Result, ConnectReturnCode};
+use {PacketType, Header, QoS, LastWill, Protocol, PacketIdentifier, MULTIPLIER};
 
 use mqtt::{
     Packet,
