@@ -38,4 +38,11 @@ impl SslContext {
             Err(err) => Err(io::Error::new(io::ErrorKind::ConnectionAborted, err).into())
         }
     }
+
+    pub fn connect(&self, stream: TcpStream) -> Result<SslStream, io::Error> {
+        match ssl::SslStream::connect(&*self.inner, stream) {
+            Ok(stream) => Ok(stream),
+            Err(err) => Err(io::Error::new(io::ErrorKind::ConnectionAborted, err).into())
+        }
+    }
 }

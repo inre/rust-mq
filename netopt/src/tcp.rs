@@ -7,6 +7,7 @@ use std::fmt;
 use mqtt3::{MqttRead, MqttWrite};
 use ssl::{SslContext, SslStream};
 use mock::MockStream;
+use openssl::ssl::IntoSsl;
 
 use NetworkStream::{
     Tcp,
@@ -37,6 +38,14 @@ impl NetworkOptions {
                 None => None
             }
         })
+    }
+
+    pub fn connect<A: ToSocketAddrs>(&self, addr: A) -> io::Result<NetworkStream> {
+        let stream = try!(TcpStream::connect(addr));
+        match self.ssl {
+            Some(ref ssl) => Ok(NetworkStream::Ssl(try!(ssl.connect(stream)))),
+            None => Ok(NetworkStream::Tcp(stream))
+        }
     }
 }
 
@@ -154,7 +163,7 @@ mod test {
         let mut listener = NetworkOptions::new().bind("127.0.0.1:8432").unwrap();
 
         thread::spawn(|| {
-            let mut client = NetworkStream::Tcp(TcpStream::connect("127.0.0.1:8432").unwrap());
+            let mut client = NetworkOptions::new().connect("127.0.0.1:8432").unwrap();
             client.write(&[0, 1, 2, 3, 4, 5]).unwrap();
             client.flush().unwrap();
             client.shutdown(Shutdown::Both).unwrap();
