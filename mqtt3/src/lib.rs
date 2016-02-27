@@ -6,6 +6,7 @@ pub mod error;
 mod mqtt;
 mod read;
 mod write;
+mod topic;
 
 pub use mqtt::{
     Packet,
@@ -15,6 +16,11 @@ pub use mqtt::{
     Subscribe,
     Suback,
     Unsubscribe
+};
+
+pub use topic::{
+    Topic,
+    TopicPath
 };
 
 pub use read::MqttRead;
