@@ -5,6 +5,11 @@ mod mqtt;
 mod read;
 mod write;
 mod topic;
+mod msg;
+
+pub use msg::{
+    Message
+};
 
 pub use mqtt::{
     Packet,
@@ -18,7 +23,8 @@ pub use mqtt::{
 
 pub use topic::{
     Topic,
-    TopicPath
+    TopicPath,
+    ToTopicPath
 };
 
 pub use read::MqttRead;

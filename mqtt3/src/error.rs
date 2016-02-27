@@ -15,6 +15,7 @@ pub enum Error {
     PayloadSizeIncorrect,
     PayloadTooLong,
     PayloadRequired,
+    TopicNameMustNotContainWildcard,
     MalformedRemainingLength,
     UnexpectedEOF,
     Io(io::Error)
