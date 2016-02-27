@@ -1,9 +1,9 @@
-use byteorder::{ReadBytesExt, BigEndian};
-use error::{Error, Result};
 use std::io::{BufReader, Read, Take, Cursor};
 use std::net::TcpStream;
 use std::sync::Arc;
-use super::{PacketType, Header, QoS, LastWill, Protocol, PacketIdentifier, ConnectReturnCode, MULTIPLIER};
+use byteorder::{ReadBytesExt, BigEndian};
+use error::{Error, Result};
+use {PacketType, Header, QoS, LastWill, Protocol, PacketIdentifier, ConnectReturnCode, MULTIPLIER};
 
 use mqtt::{
     Packet,
@@ -51,7 +51,7 @@ pub trait MqttRead: ReadBytesExt {
         }
     }
 
-    fn read_connect(&mut self, header: Header) -> Result<Arc<Connect>> {
+    fn read_connect(&mut self, _: Header) -> Result<Arc<Connect>> {
         let protocol_name = try!(self.read_mqtt_string());
         let protocol_level = try!(self.read_u8());
         let protocol = try!(Protocol::new(protocol_name.as_ref(), protocol_level));

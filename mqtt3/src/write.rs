@@ -2,17 +2,7 @@ use byteorder::{WriteBytesExt, BigEndian};
 use error::{Error, Result};
 use std::io::{BufWriter, Write, Cursor};
 use std::net::TcpStream;
-use super::{PacketType, Header, QoS, Protocol, PacketIdentifier, MAX_PAYLOAD_SIZE};
-
-use mqtt::{
-    Packet,
-    Connect,
-    Connack,
-    Publish,
-    Subscribe,
-    Suback,
-    Unsubscribe
-};
+use {Packet, QoS, MAX_PAYLOAD_SIZE};
 
 pub trait MqttWrite: WriteBytesExt {
     fn write_packet(&mut self, packet: &Packet) -> Result<()> {
@@ -201,7 +191,7 @@ mod test {
         }));
 
         let mut stream = Cursor::new(Vec::new());
-        stream.write_packet(&connect);
+        stream.write_packet(&connect).unwrap();
 
         assert_eq!(stream.get_ref().clone(), vec![0x10, 39,
             0x00, 0x04, 'M' as u8, 'Q' as u8, 'T' as u8, 'T' as u8,
@@ -229,7 +219,7 @@ mod test {
         }));
 
         let mut stream = Cursor::new(Vec::new());
-        stream.write_packet(&connect);
+        stream.write_packet(&connect).unwrap();
 
         assert_eq!(stream.get_ref().clone(), vec![0x10, 18,
             0x00, 0x06, 'M' as u8, 'Q' as u8, 'I' as u8, 's' as u8, 'd' as u8, 'p' as u8,
@@ -248,7 +238,7 @@ mod test {
         });
 
         let mut stream = Cursor::new(Vec::new());
-        stream.write_packet(&connack);
+        stream.write_packet(&connack).unwrap();
 
         assert_eq!(stream.get_ref().clone(), vec![0b00100000, 0x02, 0x01, 0x00]);
     }
@@ -265,7 +255,7 @@ mod test {
         }));
 
         let mut stream = Cursor::new(Vec::new());
-        stream.write_packet(&publish);
+        stream.write_packet(&publish).unwrap();
 
         assert_eq!(stream.get_ref().clone(), vec![0b00110010, 11, 0x00, 0x03, 'a' as u8, '/' as u8, 'b' as u8, 0x00, 0x0a, 0xF1, 0xF2, 0xF3, 0xF4]);
     }
@@ -282,7 +272,7 @@ mod test {
         }));
 
         let mut stream = Cursor::new(Vec::new());
-        stream.write_packet(&subscribe);
+        stream.write_packet(&subscribe).unwrap();
 
         assert_eq!(stream.get_ref().clone(),vec![0b10000010, 20,
             0x01, 0x04, // pid = 260
