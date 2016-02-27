@@ -73,7 +73,7 @@ mod test {
     #[test]
     fn message_to_pub_test() {
         let msg = Message {
-            topic: "/a/b".to_topic_path(),
+            topic: "/a/b".to_topic_path().unwrap(),
             qos: QoS::AtLeastOnce,
             retain: false,
             pid: Some(PacketIdentifier(1)),
@@ -108,5 +108,11 @@ mod test {
         assert_eq!(msg.pid, Some(PacketIdentifier(2)));
         assert_eq!(msg.payload, Arc::new(vec![0x10, 0x20, 0x30]));
         assert!(msg.retain);
+    }
+
+    #[test]
+    fn to_topic_name_test() {
+        assert!("/a/b/c".to_topic_name().is_ok());
+        assert!("/a/+/c".to_topic_name().is_err());
     }
 }
