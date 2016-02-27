@@ -1,4 +1,5 @@
 use std::vec::IntoIter;
+use {Error, Result};
 
 const TOPIC_PATH_DELIMITER: char = '/';
 
@@ -109,17 +110,9 @@ impl TopicPath {
             None => false
         }
     }
-}
 
-impl<'a> From<&'a str> for TopicPath {
-    fn from(str: &'a str) -> TopicPath {
-        Self::from(String::from(str))
-    }
-}
-
-impl From<String> for TopicPath {
-    fn from(path: String) -> TopicPath {
-        let topics: Vec<Topic> = path.split(TOPIC_PATH_DELIMITER).map( |topic| {
+    pub fn from_str<T: AsRef<str>>(path: T) -> Result<TopicPath> {
+        let topics: Vec<Topic> = path.as_ref().split(TOPIC_PATH_DELIMITER).map( |topic| {
             match topic {
                 "+" => Topic::SingleWildcard,
                 "#" => Topic::MultiWildcard,
@@ -143,11 +136,23 @@ impl From<String> for TopicPath {
             }
         });
 
-        TopicPath {
-            path: path,
+        Ok(TopicPath {
+            path: String::from(path.as_ref()),
             topics: topics,
             wildcards: wildcards
-        }
+        })
+    }
+}
+
+impl<'a> From<&'a str> for TopicPath {
+    fn from(str: &'a str) -> TopicPath {
+        Self::from_str(str).unwrap()
+    }
+}
+
+impl From<String> for TopicPath {
+    fn from(path: String) -> TopicPath {
+        Self::from_str(path).unwrap()
     }
 }
 
@@ -159,24 +164,32 @@ impl Into<String> for TopicPath {
 
 
 pub trait ToTopicPath {
-    fn to_topic_path(&self) -> TopicPath;
+    fn to_topic_path(&self) -> Result<TopicPath>;
+
+    fn to_topic_name(&self) -> Result<TopicPath> {
+        let topic_name = try!(self.to_topic_path());
+        match topic_name.wildcards {
+            false => Ok(topic_name),
+            true => Err(Error::TopicNameMustNotContainWildcard)
+        }
+    }
 }
 
 impl ToTopicPath for TopicPath {
-    fn to_topic_path(&self) -> TopicPath {
-        self.clone()
+    fn to_topic_path(&self) -> Result<TopicPath> {
+        Ok(self.clone())
     }
 }
 
 impl ToTopicPath for String {
-    fn to_topic_path(&self) -> TopicPath {
-        TopicPath::from(self.clone())
+    fn to_topic_path(&self) -> Result<TopicPath> {
+        TopicPath::from_str(self.clone())
     }
 }
 
 impl<'a> ToTopicPath for &'a str {
-    fn to_topic_path(&self) -> TopicPath {
-        TopicPath::from(*self)
+    fn to_topic_path(&self) -> Result<TopicPath> {
+        TopicPath::from_str(*self)
     }
 }
 
