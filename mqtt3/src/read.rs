@@ -51,7 +51,7 @@ pub trait MqttRead: ReadBytesExt {
         }
     }
 
-    fn read_connect(&mut self, _: Header) -> Result<Arc<Connect>> {
+    fn read_connect(&mut self, _: Header) -> Result<Box<Connect>> {
         let protocol_name = try!(self.read_mqtt_string());
         let protocol_level = try!(self.read_u8());
         let protocol = try!(Protocol::new(protocol_name.as_ref(), protocol_level));
@@ -90,7 +90,7 @@ pub trait MqttRead: ReadBytesExt {
             _ => Some(try!(self.read_mqtt_string()))
         };
 
-        Ok(Arc::new(
+        Ok(Box::new(
             Connect {
                 protocol: protocol,
                 keep_alive: keep_alive,
@@ -115,7 +115,7 @@ pub trait MqttRead: ReadBytesExt {
         })
     }
 
-    fn read_publish(&mut self, header: Header) -> Result<Arc<Publish>> {
+    fn read_publish(&mut self, header: Header) -> Result<Box<Publish>> {
         let topic_name = try!(self.read_mqtt_string());
         // Packet identifier exists where QoS > 0
         let pid = if header.qos().unwrap() != QoS::AtMostOnce {
@@ -127,7 +127,7 @@ pub trait MqttRead: ReadBytesExt {
         let mut payload = Vec::with_capacity(payload_len);
         try!(self.read_to_end(&mut payload));
 
-        Ok(Arc::new(
+        Ok(Box::new(
             Publish {
                 dup: header.dup(),
                 qos: try!(header.qos()),
@@ -139,7 +139,7 @@ pub trait MqttRead: ReadBytesExt {
         ))
     }
 
-    fn read_subscribe(&mut self, header: Header) -> Result<Arc<Subscribe>> {
+    fn read_subscribe(&mut self, header: Header) -> Result<Box<Subscribe>> {
         let pid = try!(self.read_u16::<BigEndian>());
         let mut remaining_bytes = header.len - 2;
         let mut topics = Vec::with_capacity(1);
@@ -151,13 +151,13 @@ pub trait MqttRead: ReadBytesExt {
             topics.push(SubscribeTopic { topic_path: topic_filter, qos: try!(QoS::from_u8(requested_qod)) });
         };
 
-        Ok(Arc::new(Subscribe {
+        Ok(Box::new(Subscribe {
             pid: PacketIdentifier(pid),
             topics: topics
         }))
     }
 
-    fn read_suback(&mut self, header: Header) -> Result<Arc<Suback>> {
+    fn read_suback(&mut self, header: Header) -> Result<Box<Suback>> {
         let pid = try!(self.read_u16::<BigEndian>());
         let mut remaining_bytes = header.len - 2;
         let mut return_codes = Vec::with_capacity(remaining_bytes);
@@ -172,13 +172,13 @@ pub trait MqttRead: ReadBytesExt {
             remaining_bytes -= 1
         };
 
-        Ok(Arc::new(Suback {
+        Ok(Box::new(Suback {
             pid: PacketIdentifier(pid),
             return_codes: return_codes
         }))
     }
 
-    fn read_unsubscribe(&mut self, header: Header) -> Result<Arc<Unsubscribe>> {
+    fn read_unsubscribe(&mut self, header: Header) -> Result<Box<Unsubscribe>> {
         let pid = try!(self.read_u16::<BigEndian>());
         let mut remaining_bytes = header.len - 2;
         let mut topics = Vec::with_capacity(1);
@@ -189,7 +189,7 @@ pub trait MqttRead: ReadBytesExt {
             topics.push(topic_filter);
         };
 
-        Ok(Arc::new(Unsubscribe {
+        Ok(Box::new(Unsubscribe {
             pid: PacketIdentifier(pid),
             topics: topics
         }))
@@ -266,7 +266,7 @@ mod test {
 
         let packet = stream.read_packet().unwrap();
 
-        assert_eq!(packet, Packet::Connect(Arc::new(Connect {
+        assert_eq!(packet, Packet::Connect(Box::new(Connect {
             protocol: Protocol::MQTT(4),
             keep_alive: 10,
             client_id: "test".to_owned(),
@@ -295,7 +295,7 @@ mod test {
 
         let packet = stream.read_packet().unwrap();
 
-        assert_eq!(packet, Packet::Connect(Arc::new(Connect {
+        assert_eq!(packet, Packet::Connect(Box::new(Connect {
             protocol: Protocol::MQIsdp(3),
             keep_alive: 60,
             client_id: "test".to_owned(),
@@ -328,7 +328,7 @@ mod test {
 
         let packet = stream.read_packet().unwrap();
 
-        assert_eq!(packet, Packet::Publish(Arc::new(Publish {
+        assert_eq!(packet, Packet::Publish(Box::new(Publish {
             dup: false,
             qos: QoS::AtLeastOnce,
             retain: false,
@@ -348,7 +348,7 @@ mod test {
 
         let packet = stream.read_packet().unwrap();
 
-        assert_eq!(packet, Packet::Publish(Arc::new(Publish {
+        assert_eq!(packet, Packet::Publish(Box::new(Publish {
             dup: false,
             qos: QoS::AtMostOnce,
             retain: false,
@@ -381,7 +381,7 @@ mod test {
 
         let packet = stream.read_packet().unwrap();
 
-        assert_eq!(packet, Packet::Subscribe(Arc::new(Subscribe {
+        assert_eq!(packet, Packet::Subscribe(Box::new(Subscribe {
             pid: PacketIdentifier(260),
             topics: vec![
                 SubscribeTopic { topic_path: "a/+".to_owned(), qos: QoS::AtMostOnce },
@@ -403,7 +403,7 @@ mod test {
 
         let packet = stream.read_packet().unwrap();
 
-        assert_eq!(packet, Packet::Unsubscribe(Arc::new(Unsubscribe {
+        assert_eq!(packet, Packet::Unsubscribe(Box::new(Unsubscribe {
             pid: PacketIdentifier(15),
             topics: vec![
                 "a/+".to_owned(),
@@ -423,7 +423,7 @@ mod test {
 
         let packet = stream.read_packet().unwrap();
 
-        assert_eq!(packet, Packet::Suback(Arc::new(Suback {
+        assert_eq!(packet, Packet::Suback(Box::new(Suback {
             pid: PacketIdentifier(15),
             return_codes: vec![SubscribeReturnCodes::Success(QoS::AtLeastOnce), SubscribeReturnCodes::Failure]
         })));

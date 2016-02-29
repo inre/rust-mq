@@ -3,16 +3,16 @@ use super::{QoS, LastWill, PacketIdentifier, Protocol, ConnectReturnCode};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Packet {
-	Connect(Arc<Connect>),
+	Connect(Box<Connect>),
 	Connack(Connack),
-	Publish(Arc<Publish>),
+	Publish(Box<Publish>),
 	Puback(PacketIdentifier),
 	Pubrec(PacketIdentifier),
 	Pubrel(PacketIdentifier),
 	Pubcomp(PacketIdentifier),
-	Subscribe(Arc<Subscribe>),
-	Suback(Arc<Suback>),
-	Unsubscribe(Arc<Unsubscribe>),
+	Subscribe(Box<Subscribe>),
+	Suback(Box<Suback>),
+	Unsubscribe(Box<Unsubscribe>),
 	Unsuback(PacketIdentifier),
 	Pingreq,
 	Pingresp,

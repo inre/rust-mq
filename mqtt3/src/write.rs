@@ -175,7 +175,7 @@ mod test {
 
     #[test]
     fn write_packet_connect_mqtt_protocol_test() {
-        let connect = Packet::Connect(Arc::new(Connect {
+        let connect = Packet::Connect(Box::new(Connect {
             protocol: Protocol::MQTT(4),
             keep_alive: 10,
             client_id: "test".to_owned(),
@@ -208,7 +208,7 @@ mod test {
 
     #[test]
     fn write_packet_connect_mqisdp_protocol_test() {
-        let connect = Packet::Connect(Arc::new(Connect {
+        let connect = Packet::Connect(Box::new(Connect {
             protocol: Protocol::MQIsdp(3),
             keep_alive: 60,
             client_id: "test".to_owned(),
@@ -245,7 +245,7 @@ mod test {
 
     #[test]
     fn write_packet_publish_test() {
-        let publish = Packet::Publish(Arc::new(Publish {
+        let publish = Packet::Publish(Box::new(Publish {
             dup: false,
             qos: QoS::AtLeastOnce,
             retain: false,
@@ -262,7 +262,7 @@ mod test {
 
     #[test]
     fn write_packet_subscribe_test() {
-        let subscribe = Packet::Subscribe(Arc::new(Subscribe {
+        let subscribe = Packet::Subscribe(Box::new(Subscribe {
             pid: PacketIdentifier(260),
             topics: vec![
                 SubscribeTopic { topic_path: "a/+".to_owned(), qos: QoS::AtMostOnce },
