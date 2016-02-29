@@ -2,7 +2,7 @@ use std::io::{BufReader, Read, Take, Cursor};
 use std::net::TcpStream;
 use std::sync::Arc;
 use byteorder::{ReadBytesExt, BigEndian};
-use {Error, Result, ConnectReturnCode};
+use {Error, Result, ConnectReturnCode, SubscribeTopic, SubscribeReturnCodes};
 use {PacketType, Header, QoS, LastWill, Protocol, PacketIdentifier, MULTIPLIER};
 
 use mqtt::{
@@ -148,7 +148,7 @@ pub trait MqttRead: ReadBytesExt {
             let topic_filter = try!(self.read_mqtt_string());
             let requested_qod = try!(self.read_u8());
             remaining_bytes -= topic_filter.len() + 3;
-            topics.push((topic_filter, try!(QoS::from_u8(requested_qod))));
+            topics.push(SubscribeTopic { topic_path: topic_filter, qos: try!(QoS::from_u8(requested_qod)) });
         };
 
         Ok(Arc::new(Subscribe {
@@ -164,7 +164,11 @@ pub trait MqttRead: ReadBytesExt {
 
         while remaining_bytes > 0 {
             let return_code = try!(self.read_u8());
-            return_codes.push((return_code >> 7 == 1, try!(QoS::from_u8(return_code & 0x3))));
+            if return_code >> 7 == 1 {
+                return_codes.push(SubscribeReturnCodes::Failure)
+            } else {
+                return_codes.push(SubscribeReturnCodes::Success(try!(QoS::from_u8(return_code & 0x3))));
+            }
             remaining_bytes -= 1
         };
 
@@ -234,8 +238,8 @@ mod test {
     use std::io::Cursor;
     use std::sync::Arc;
     use super::MqttRead;
-    use super::super::{Protocol, LastWill, QoS, PacketIdentifier, ConnectReturnCode};
-    use super::super::mqtt::{
+    use {Protocol, LastWill, QoS, PacketIdentifier, ConnectReturnCode, SubscribeTopic, SubscribeReturnCodes};
+    use mqtt::{
         Packet,
         Connect,
         Connack,
@@ -380,9 +384,9 @@ mod test {
         assert_eq!(packet, Packet::Subscribe(Arc::new(Subscribe {
             pid: PacketIdentifier(260),
             topics: vec![
-                ("a/+".to_owned(), QoS::AtMostOnce),
-                ("#".to_owned(), QoS::AtLeastOnce),
-                ("a/b/c".to_owned(), QoS::ExactlyOnce)
+                SubscribeTopic { topic_path: "a/+".to_owned(), qos: QoS::AtMostOnce },
+                SubscribeTopic { topic_path: "#".to_owned(), qos: QoS::AtLeastOnce },
+                SubscribeTopic { topic_path: "a/b/c".to_owned(), qos: QoS::ExactlyOnce }
             ]
         })));
     }
@@ -421,7 +425,7 @@ mod test {
 
         assert_eq!(packet, Packet::Suback(Arc::new(Suback {
             pid: PacketIdentifier(15),
-            return_codes: vec![(false, QoS::AtLeastOnce), (true, QoS::AtMostOnce)]
+            return_codes: vec![SubscribeReturnCodes::Success(QoS::AtLeastOnce), SubscribeReturnCodes::Failure]
         })));
     }
 }

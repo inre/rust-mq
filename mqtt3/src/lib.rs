@@ -23,7 +23,9 @@ pub use mqtt::{
     Publish,
     Subscribe,
     Suback,
-    Unsubscribe
+    Unsubscribe,
+    SubscribeTopic,
+    SubscribeReturnCodes
 };
 
 pub use topic::{
@@ -234,11 +236,11 @@ pub struct PacketIdentifier(pub u16);
 
 impl PacketIdentifier {
     pub fn zero() -> PacketIdentifier {
-        PacketIdentifier(0u16)
+        PacketIdentifier(0)
     }
 
     pub fn next(&self) -> PacketIdentifier {
-        PacketIdentifier(self.0)
+        PacketIdentifier(self.0 + 1)
     }
 }
 
@@ -284,7 +286,7 @@ pub struct LastWill {
 
 #[cfg(test)]
 mod test {
-    use super::{QoS, Protocol};
+    use super::{QoS, Protocol, PacketIdentifier};
 
     #[test]
     fn protocol_test() {
@@ -304,5 +306,12 @@ mod test {
         assert_eq!(QoS::AtLeastOnce.min(QoS::ExactlyOnce), QoS::AtLeastOnce);
         assert_eq!(QoS::ExactlyOnce.min(QoS::AtMostOnce), QoS::AtMostOnce);
         assert_eq!(QoS::ExactlyOnce.min(QoS::ExactlyOnce), QoS::ExactlyOnce);
+    }
+
+    #[test]
+    fn packet_identifier_test() {
+        let pid = PacketIdentifier::zero();
+        assert_eq!(pid, PacketIdentifier(0));
+        assert_eq!(pid.next(), PacketIdentifier(1));
     }
 }

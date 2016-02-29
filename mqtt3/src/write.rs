@@ -1,7 +1,7 @@
 use byteorder::{WriteBytesExt, BigEndian};
 use std::io::{BufWriter, Write, Cursor};
 use std::net::TcpStream;
-use {Packet, QoS, Error, Result, MAX_PAYLOAD_SIZE};
+use {Packet, QoS, Error, Result, MAX_PAYLOAD_SIZE, SubscribeTopic, SubscribeReturnCodes};
 
 pub trait MqttWrite: WriteBytesExt {
     fn write_packet(&mut self, packet: &Packet) -> Result<()> {
@@ -84,16 +84,12 @@ pub trait MqttWrite: WriteBytesExt {
 			&Packet::Pubcomp(_) => Err(Error::UnsupportedPacketType),
 			&Packet::Subscribe(ref subscribe) => {
                 try!(self.write(&[0x82]));
-                let mut len = 2;
-                let topics: &Vec<(String, QoS)> = subscribe.topics.as_ref();
-                for &(ref topic, _) in topics {
-                    len += topic.len() + 3
-                }
+                let len = 2 + subscribe.topics.iter().fold(0, |s, ref t| s + t.topic_path.len() + 3);
                 try!(self.write_remaining_length(len));
                 try!(self.write_u16::<BigEndian>(subscribe.pid.0));
-                for &(ref topic, ref qos) in topics {
-                    try!(self.write_mqtt_string(topic.as_str()));
-                    try!(self.write_u8(qos.to_u8()));
+                for topic in subscribe.topics.as_ref() as &Vec<SubscribeTopic> {
+                    try!(self.write_mqtt_string(topic.topic_path.as_str()));
+                    try!(self.write_u8(topic.qos.to_u8()));
                 }
                 Ok(())
             },
@@ -101,7 +97,12 @@ pub trait MqttWrite: WriteBytesExt {
                 try!(self.write(&[0x90]));
                 try!(self.write_remaining_length(suback.return_codes.len() + 2));
                 try!(self.write_u16::<BigEndian>(suback.pid.0));
-                let payload: Vec<u8> = suback.return_codes.iter().map({ |&(err, qos)| ((err as u8) << 7) & qos.to_u8() }).collect();
+                let payload: Vec<u8> = suback.return_codes.iter().map({ |&code|
+                    match code {
+                        SubscribeReturnCodes::Success(qos) => qos.to_u8(),
+                        SubscribeReturnCodes::Failure => 0x80
+                    }
+                }).collect();
                 try!(self.write(&payload));
                 Ok(())
             },
@@ -163,7 +164,7 @@ mod test {
     use std::io::Cursor;
     use std::sync::Arc;
     use super::{MqttWrite};
-    use super::super::{Protocol, LastWill, QoS, PacketIdentifier, ConnectReturnCode};
+    use super::super::{Protocol, LastWill, QoS, PacketIdentifier, ConnectReturnCode, SubscribeTopic};
     use super::super::mqtt::{
         Packet,
         Connect,
@@ -264,9 +265,9 @@ mod test {
         let subscribe = Packet::Subscribe(Arc::new(Subscribe {
             pid: PacketIdentifier(260),
             topics: vec![
-                ("a/+".to_owned(), QoS::AtMostOnce),
-                ("#".to_owned(), QoS::AtLeastOnce),
-                ("a/b/c".to_owned(), QoS::ExactlyOnce)
+                SubscribeTopic { topic_path: "a/+".to_owned(), qos: QoS::AtMostOnce },
+                SubscribeTopic { topic_path: "#".to_owned(), qos: QoS::AtLeastOnce },
+                SubscribeTopic { topic_path: "a/b/c".to_owned(), qos: QoS::ExactlyOnce }
             ]
         }));
 
