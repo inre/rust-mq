@@ -33,6 +33,13 @@ impl Into<String> for Topic {
 }
 
 impl Topic {
+    pub fn validate(topic: &str) -> bool {
+        match topic {
+            "+" | "#" => true,
+            _ => !(topic.contains("+") || topic.contains("#"))
+        }
+    }
+
     pub fn fit(&self, other: &Topic) -> bool {
         match *self {
             Normal(ref str) => {
@@ -95,10 +102,6 @@ impl TopicPath {
         self.topics.len()
     }
 
-    pub fn into_iter(self) -> IntoIter<Topic> {
-        self.topics.into_iter()
-    }
-
     pub fn is_final(&self, index: usize) -> bool {
         let len = self.topics.len();
         len == 0 || len-1 == index
@@ -112,22 +115,28 @@ impl TopicPath {
     }
 
     pub fn from_str<T: AsRef<str>>(path: T) -> Result<TopicPath> {
+        let mut valid = true;
         let topics: Vec<Topic> = path.as_ref().split(TOPIC_PATH_DELIMITER).map( |topic| {
             match topic {
                 "+" => Topic::SingleWildcard,
                 "#" => Topic::MultiWildcard,
                 "" => Topic::Blank,
                 _ => {
+                    if !Topic::validate(topic) {
+                        valid = false;
+                    }
                     if topic.chars().nth(0) == Some('$') {
                         Topic::System(String::from(topic))
                     } else {
-                        // FIXME: validate the topic
                         Topic::Normal(String::from(topic))
                     }
                 }
             }
         }).collect();
 
+        if !valid {
+            return Err(Error::InvalidTopicPath);
+        }
         // check for wildcards
         let wildcards = topics.iter().any(|topic| {
             match *topic {
@@ -141,6 +150,14 @@ impl TopicPath {
             topics: topics,
             wildcards: wildcards
         })
+    }
+}
+
+impl IntoIterator for TopicPath {
+    type Item = Topic;
+    type IntoIter = IntoIter<Topic>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.topics.into_iter()
     }
 }
 
@@ -161,7 +178,6 @@ impl Into<String> for TopicPath {
         self.path
     }
 }
-
 
 pub trait ToTopicPath {
     fn to_topic_path(&self) -> Result<TopicPath>;
@@ -217,5 +233,12 @@ mod test {
         assert!(topic.wildcards);
         let topic = TopicPath::from("/a/b/#");
         assert!(topic.wildcards);
+    }
+
+    #[test]
+    fn topic_is_not_valid_test() {
+        assert!(TopicPath::from_str("+wrong").is_err());
+        assert!(TopicPath::from_str("wro#ng").is_err());
+        assert!(TopicPath::from_str("w/r/o/n/g+").is_err());
     }
 }

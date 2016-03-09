@@ -7,6 +7,7 @@ pub type Result<T> = result::Result<T, Error>;
 #[derive(Debug)]
 pub enum Error {
     IncorrectPacketFormat,
+    InvalidTopicPath,
     UnsupportedProtocolName,
     UnsupportedProtocolVersion,
     UnsupportedQualityOfService,
