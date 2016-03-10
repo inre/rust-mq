@@ -13,12 +13,12 @@ pub struct Message {
 }
 
 impl Message {
-    pub fn from_pub(publish: Arc<Publish>) -> Result<Arc<Message>> {
+    pub fn from_pub(publish: Box<Publish>) -> Result<Box<Message>> {
         let topic = TopicPath::from(publish.topic_name.as_str());
         if topic.wildcards {
             return Err(Error::TopicNameMustNotContainWildcard);
         }
-        Ok(Arc::new(Message {
+        Ok(Box::new(Message {
             topic: topic,
             qos: publish.qos,
             retain: publish.retain,
@@ -27,10 +27,10 @@ impl Message {
         }))
     }
 
-    pub fn from_last_will(last_will: LastWill) -> Arc<Message> {
+    pub fn from_last_will(last_will: LastWill) -> Box<Message> {
         let topic = TopicPath::from(last_will.topic);
 
-        Arc::new(Message {
+        Box::new(Message {
             topic: topic,
             qos: last_will.qos,
             retain: last_will.retain,
@@ -39,9 +39,9 @@ impl Message {
         })
     }
 
-    pub fn to_pub(&self, qos: Option<QoS>, dup: bool) -> Arc<Publish> {
+    pub fn to_pub(&self, qos: Option<QoS>, dup: bool) -> Box<Publish> {
         let qos = qos.unwrap_or(self.qos);
-        Arc::new(Publish {
+        Box::new(Publish {
             dup: dup,
             qos: qos,
             retain: false,
@@ -51,10 +51,10 @@ impl Message {
         })
     }
 
-    pub fn transform(&self, pid: Option<PacketIdentifier>, qos: Option<QoS>) -> Arc<Message> {
+    pub fn transform(&self, pid: Option<PacketIdentifier>, qos: Option<QoS>) -> Box<Message> {
         let pid = pid.or(self.pid);
         let qos = qos.unwrap_or(self.qos);
-        Arc::new(Message {
+        Box::new(Message {
             topic: self.topic.clone(),
             qos: qos,
             retain: self.retain,
@@ -81,7 +81,7 @@ mod test {
         };
         let publish = msg.to_pub(None, false);
 
-        assert_eq!(publish, Arc::new(Publish {
+        assert_eq!(publish, Box::new(Publish {
             dup: false,
             qos: QoS::AtLeastOnce,
             retain: false,
@@ -93,7 +93,7 @@ mod test {
 
     #[test]
     fn message_from_pub_test() {
-        let publish = Arc::new(Publish {
+        let publish = Box::new(Publish {
             dup: true,
             qos: QoS::ExactlyOnce,
             retain: true,
