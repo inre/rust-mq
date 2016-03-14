@@ -1,0 +1,11 @@
+[package]
+name = "mqttc"
+version = "0.1.0"
+authors = ["Maksim V. <inre.storm@gmail.com>"]
+license = "MIT"
+
+[dependencies]
+rand = "0.3"
+byteorder = "0.4"
+mqtt3 = { path = "../mqtt3" }
+netopt = { path = "../netopt" }
