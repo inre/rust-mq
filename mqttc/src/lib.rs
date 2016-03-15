@@ -151,3 +151,36 @@ impl ToPayload for Arc<Vec<u8>> {
         self.clone()
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::PubOpt;
+    use mqtt3::QoS;
+
+    #[test]
+    fn pubopt_test() {
+        let pubopt = PubOpt::at_least_once();
+        assert_eq!(pubopt.qos(), QoS::AtLeastOnce);
+        assert!(!pubopt.is_retain());
+
+        let pubopt = PubOpt::at_most_once();
+        assert_eq!(pubopt.qos(), QoS::AtMostOnce);
+        assert!(!pubopt.is_retain());
+
+        let pubopt = PubOpt::exactly_once();
+        assert_eq!(pubopt.qos(), QoS::ExactlyOnce);
+        assert!(!pubopt.is_retain());
+
+        let pubopt = PubOpt::at_least_once() | PubOpt::retain();
+        assert_eq!(pubopt.qos(), QoS::AtLeastOnce);
+        assert!(pubopt.is_retain());
+
+        let pubopt = PubOpt::at_most_once() | PubOpt::retain();
+        assert_eq!(pubopt.qos(), QoS::AtMostOnce);
+        assert!(pubopt.is_retain());
+
+        let pubopt = PubOpt::exactly_once() | PubOpt::retain();
+        assert_eq!(pubopt.qos(), QoS::ExactlyOnce);
+        assert!(pubopt.is_retain());
+    }
+}
