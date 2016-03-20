@@ -22,6 +22,10 @@ pub use ssl::{
     SslError
 };
 
+pub use conn::{
+    Connection
+};
+
 #[cfg(not(feature = "ssl"))]
 pub mod ssl {
     use mock::MockStream;
