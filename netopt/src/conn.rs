@@ -4,6 +4,7 @@ use std::net::Shutdown;
 use {NetworkStream, NetworkReader, NetworkWriter};
 
 pub struct Connection {
+    stream: NetworkStream,
     reader: NetworkReader,
     writer: NetworkWriter
 }
@@ -11,14 +12,14 @@ pub struct Connection {
 impl Connection {
     pub fn new(stream: &NetworkStream) -> io::Result<Connection> {
         Ok(Connection {
+            stream: try!(stream.try_clone()),
             reader: NetworkReader::new(try!(stream.try_clone())),
             writer: NetworkWriter::new(try!(stream.try_clone()))
         })
     }
 
-    pub fn terminate(self) -> io::Result<()> {
-        let mut stream = try!(self.writer.into_inner());
-        stream.shutdown(Shutdown::Both)
+    pub fn terminate(&self) -> io::Result<()> {
+        self.stream.shutdown(Shutdown::Both)
     }
 
     pub fn split(self) -> (NetworkReader, NetworkWriter) {
