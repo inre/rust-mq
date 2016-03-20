@@ -7,4 +7,4 @@ repository = "https://github.com/inre/rust-mq"
 license = "MIT"
 
 [dependencies]
-byteorder = "*"
+byteorder = "0.4"

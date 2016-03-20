@@ -14,3 +14,4 @@ exclude       = [
 
 [dependencies]
 "mqtt3" = { path = "mqtt3" }
+"netopt" = { path = "netopt" }

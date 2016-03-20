@@ -5,7 +5,11 @@ authors = ["Maksim V. <inre.storm@gmail.com>"]
 license = "MIT"
 
 [dependencies]
+log = "0.3"
 rand = "0.3"
 byteorder = "0.4"
 mqtt3 = { path = "../mqtt3" }
 netopt = { path = "../netopt" }
+
+[dev-dependencies]
+env_logger = "0.3"
