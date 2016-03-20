@@ -1,12 +1,19 @@
 use std::result;
 use std::io;
+use mqtt3::{ConnectReturnCode};
 use mqtt3::Error as MqttError;
 
 pub type Result<T> = result::Result<T, Error>;
 
 #[derive(Debug)]
 pub enum Error {
+    AlreadyConnected,
     UnsupportedFeature,
+    UnrecognizedPacket,
+    ConnectionAbort,
+    HandshakeFailed,
+    Timeout,
+    ConnectionRefused(ConnectReturnCode),
     Mqtt(MqttError),
     Io(io::Error)
 }
@@ -19,6 +26,9 @@ impl From<io::Error> for Error {
 
 impl From<MqttError> for Error {
     fn from(err: MqttError) -> Error {
-        Error::Mqtt(err)
+        match err {
+            MqttError::Io(e) => Error::Io(e),
+            _ => Error::Mqtt(err)
+        }
     }
 }

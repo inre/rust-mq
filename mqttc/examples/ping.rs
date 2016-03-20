@@ -1,0 +1,36 @@
+extern crate mqttc;
+extern crate netopt;
+#[macro_use] extern crate log;
+extern crate env_logger;
+
+use std::env;
+use std::process::exit;
+use netopt::NetworkOptions;
+use mqttc::{Client, ClientOptions};
+
+fn main() {
+    env_logger::init().unwrap();
+    let mut args: Vec<_> = env::args().collect();
+    if args.len() < 2 {
+        println!("Usage: crate run --example ping -- 127.0.0.1:1883");
+        exit(1);
+    }
+    let ref address = args[1];
+    info!("Show logging");
+    println!("Establish connection to {}", address);
+
+    // Connect to broker, send CONNECT then wait CONNACK
+    let netopt = NetworkOptions::new();
+    let mut opts = ClientOptions::new();
+    opts.set_keep_alive(5);
+    let mut client = opts.connect(address.as_str(), netopt).unwrap();
+
+    loop {
+        match client.await().unwrap() {
+            Some(message) => println!("{:?}", message),
+            None => {
+                println!(".");
+            }
+        }
+    }
+}

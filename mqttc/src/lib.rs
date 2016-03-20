@@ -1,3 +1,4 @@
+#[macro_use] extern crate log;
 extern crate rand;
 extern crate byteorder;
 extern crate mqtt3;
@@ -12,6 +13,11 @@ pub use sub::{
     ToUnSubTopics
 };
 
+pub use client::{
+    Client,
+    ClientOptions
+};
+
 use std::sync::Arc;
 use std::ops;
 use mqtt3::{QoS, ToTopicPath};
@@ -20,13 +26,14 @@ use error::Result;
 const MAX_QOS: QoS = mqtt3::QoS::AtLeastOnce;
 
 pub trait Mqttc {
-    fn ping(&mut self) -> Result<()>;
+    //fn ping(&mut self) -> Result<()>;
     fn publish<T: ToTopicPath, P: ToPayload>(&mut self, topic: ToTopicPath, payload: ToPayload, pubopt: PubOpt) -> Result<()>;
     fn subscribe<S: ToSubTopics>(&mut self, subs: S) -> Result<()>;
     fn unsubscribe<U: ToUnSubTopics>(&mut self, unsubs: U) -> Result<()>;
     fn disconnect(self) -> Result<()>;
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ClientState {
     Handshake,
     Connected,

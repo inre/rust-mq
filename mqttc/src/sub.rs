@@ -1,7 +1,13 @@
 use std::option;
 use {MAX_QOS};
 use error::Result;
-use mqtt3::{SubscribeTopic, QoS};
+use mqtt3::{SubscribeTopic, TopicPath, PacketIdentifier, QoS};
+
+pub struct Subscription {
+    pid: PacketIdentifier,
+    topic_path: TopicPath,
+    qos: QoS
+}
 
 pub trait ToSubTopics {
     type Iter: Iterator<Item=SubscribeTopic>;
