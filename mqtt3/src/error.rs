@@ -18,7 +18,7 @@ pub enum Error {
     PayloadRequired,
     TopicNameMustNotContainWildcard,
     MalformedRemainingLength,
-    UnexpectedEOF,
+    UnexpectedEof,
     Io(io::Error)
 }
 
@@ -31,7 +31,7 @@ impl From<io::Error> for Error {
 impl From<byteorder::Error> for Error {
     fn from(err: byteorder::Error) -> Error {
         match err {
-            byteorder::Error::UnexpectedEOF => Error::UnexpectedEOF,
+            byteorder::Error::UnexpectedEOF => Error::UnexpectedEof,
             byteorder::Error::Io(err) => Error::Io(err)
         }
     }
