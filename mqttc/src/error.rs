@@ -12,6 +12,7 @@ pub enum Error {
     UnrecognizedPacket,
     ConnectionAbort,
     HandshakeFailed,
+    Disconnected,
     Timeout,
     ConnectionRefused(ConnectReturnCode),
     Mqtt(MqttError),

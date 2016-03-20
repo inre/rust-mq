@@ -2,6 +2,7 @@ use std::collections::{HashMap, VecDeque};
 use std::io::{Read, Write, ErrorKind};
 use std::net::{SocketAddr, ToSocketAddrs};
 use std::time::Duration;
+use std::thread;
 use netopt::{Connection, NetworkOptions, NetworkStream};
 use rand::{self, Rng};
 use mqtt3::{MqttRead, MqttWrite, Message};
@@ -9,7 +10,7 @@ use mqtt3::{self, Protocol, Packet, ConnectReturnCode, PacketIdentifier, LastWil
 use mqtt3::Error as MqttError;
 use error::{Error, Result};
 use sub::Subscription;
-use {ClientState, PubOpt, ToPayload};
+use {ClientState, ReconnectMethod, PubOpt, ToPayload};
 
 #[derive(Debug, Clone)]
 pub struct ClientOptions {
@@ -20,7 +21,7 @@ pub struct ClientOptions {
     last_will: Option<LastWill>,
     username: Option<String>,
     password: Option<String>,
-    reconnect: bool
+    reconnect: ReconnectMethod
 }
 
 impl ClientOptions {
@@ -33,7 +34,7 @@ impl ClientOptions {
             last_will: None,
             username: None,
             password: None,
-            reconnect: false
+            reconnect: ReconnectMethod::ForeverDisconnect
         }
     }
 
@@ -75,7 +76,7 @@ impl ClientOptions {
         Ok(())
     }
 
-    pub fn set_reconnect(&mut self, reconnect: bool) -> &mut ClientOptions {
+    pub fn set_reconnect(&mut self, reconnect: ReconnectMethod) -> &mut ClientOptions {
         self.reconnect = reconnect; self
     }
 
@@ -91,7 +92,7 @@ impl ClientOptions {
 
         let mut client = Client {
             addr: addr,
-            state: ClientState::Handshake,
+            state: ClientState::Disconnected,
             netopt: netopt,
             opts: self,
             conn: conn,
@@ -108,10 +109,8 @@ impl ClientOptions {
             // Subscriptions
         };
 
-        // send CONNECT
-        try!(client.connect());
-        // wait CONNACK
-        try!(client.await());
+        // Send CONNECT then wait CONNACK
+        try!(client._handshake());
 
         Ok(client)
     }
@@ -198,7 +197,17 @@ impl Client {
             match self.accept() {
                 Ok(message) => return Ok(message),
                 Err(e) => match e {
-                    Error::Timeout => self.ping(),
+                    Error::Timeout => {
+                        if self.state == ClientState::Connected {
+                            if !self.await_ping {
+                                let _ = self.ping();
+                            } else {
+                                self._unbind();
+                            }
+                        } else {
+                            return Err(Error::Timeout)
+                        }
+                    },
                     _ => return Err(e)
                 }
             };
@@ -209,28 +218,62 @@ impl Client {
     }
 
     pub fn accept(&mut self) -> Result<Option<Message>> {
-        match self.conn.read_packet() {
-            Ok(packet) => {
-                self._parse_packet(&packet)
-            },
-            Err(err) => match err {
-                mqtt3::Error::Io(e) => match e.kind() {
-                    ErrorKind::WouldBlock | ErrorKind::TimedOut => {
-                        Err(Error::Timeout)
-                    },
-                    _ => Err(Error::from(e))
+        match self.state {
+            ClientState::Connected | ClientState::Handshake => match self.conn.read_packet() {
+                Ok(packet) => {
+                    self._parse_packet(&packet)
                 },
-                _ => Err(Error::from(err))
+                Err(err) => match err {
+                    mqtt3::Error::UnexpectedEof => {
+                        if self._try_reconnect() {
+                            Ok(None)
+                        } else {
+                            Err(Error::Disconnected)
+                        }
+                    },
+                    mqtt3::Error::Io(e) => match e.kind() {
+                        ErrorKind::WouldBlock | ErrorKind::TimedOut => {
+                            Err(Error::Timeout)
+                        },
+                        ErrorKind::UnexpectedEof | ErrorKind::ConnectionRefused |
+                        ErrorKind::ConnectionReset | ErrorKind::ConnectionAborted => {
+                            self._unbind();
+                            if self._try_reconnect() {
+                                Ok(None)
+                            } else {
+                                Err(Error::Disconnected)
+                            }
+                        },
+                        _ => {
+                            self._unbind();
+                            Err(Error::from(e))
+                        }
+                    },
+                    _ => {
+                        self._unbind();
+                        Err(Error::from(err))
+                    }
+                }
+            },
+            ClientState::Disconnected => {
+                if self._try_reconnect() {
+                    Ok(None)
+                } else {
+                    Err(Error::Disconnected)
+                }
             }
         }
     }
 
-    pub fn connect(&mut self) -> Result<()> {
-        let connect = self.opts._generate_connect_packet();
-        debug!("CONNECT client_id: {}", connect.client_id);
-        let packet = Packet::Connect(connect);
-        self._write_packet(&packet);
-        self._flush()
+    pub fn reconnect(&mut self) -> Result<()> {
+        if self.state == ClientState::Connected {
+            warn!("The client is already connected.");
+            return Ok(());
+        };
+        let (conn, _) = try!(self.opts._reconnect(self.addr, &self.netopt));
+        self.conn = conn;
+        try!(self._handshake());
+        Ok(())
     }
 
     pub fn ping(&mut self) -> Result<()> {
@@ -240,7 +283,7 @@ impl Client {
         self._flush()
     }
 
-    pub fn set_reconnect(&mut self, reconnect: bool) {
+    pub fn set_reconnect(&mut self, reconnect: ReconnectMethod) {
         self.opts.reconnect = reconnect;
     }
 
@@ -265,11 +308,11 @@ impl Client {
                         if connack.code == ConnectReturnCode::Accepted {
                             self.session_present = connack.session_present;
                             self.state = ClientState::Connected;
+                            info!("The client has connected.");
                             Ok(None)
                         } else {
                             Err(Error::ConnectionRefused(connack.code))
                         }
-
                     },
                     _ => Err(Error::HandshakeFailed)
                 }
@@ -279,7 +322,7 @@ impl Client {
                     &Packet::Connack(_) => Err(Error::AlreadyConnected),
                     &Packet::Pingresp => {
                         self.await_ping = false;
-                        Ok(None)
+                        Ok(None )
                     },
                     &Packet::Pubcomp | &Packet::Pubrec | &Packet::Pubrel => Err(Error::UnsupportedFeature),
                     _ => Err(Error::UnrecognizedPacket)
@@ -287,6 +330,35 @@ impl Client {
             },
             ClientState::Disconnected => Err(Error::ConnectionAbort)
         }
+    }
+
+    fn _handshake(&mut self) -> Result<()> {
+        self.state = ClientState::Handshake;
+        // send CONNECT
+        try!(self._connect());
+        // wait CONNACK
+        let _ = try!(self.await());
+        Ok(())
+    }
+
+    fn _try_reconnect(&mut self) -> bool {
+        match self.opts.reconnect {
+            ReconnectMethod::ForeverDisconnect => false,
+            ReconnectMethod::ReconnectAfter(dur) => {
+                info!("Trying to reconnect in {} seconds...", dur.as_secs());
+                thread::sleep(dur);
+                let _ = self.reconnect();
+                true
+            }
+        }
+    }
+
+    fn _connect(&mut self) -> Result<()> {
+        let connect = self.opts._generate_connect_packet();
+        debug!("CONNECT client_id: {}", connect.client_id);
+        let packet = Packet::Connect(connect);
+        self._write_packet(&packet);
+        self._flush()
     }
 
     fn _disconnect(&mut self) {
@@ -299,9 +371,18 @@ impl Client {
     }
 
     fn _flush(&mut self) -> Result<()> {
-        // TODO: in case of disconnection, try to reconnect
+        // TODO: in case of disconnection, trying to reconnect
         try!(self.conn.flush());
         Ok(())
+    }
+
+    fn _unbind(&mut self) {
+        let _ = self.conn.terminate();
+        self.await_unsuback.clear();
+        self.await_suback.clear();
+        self.await_ping = false;
+        self.state = ClientState::Disconnected;
+        info!("The client has been disconnected.");
     }
 
     #[inline]
