@@ -20,6 +20,7 @@ pub use client::{
 
 use std::sync::Arc;
 use std::ops;
+use std::time::Duration;
 use mqtt3::{QoS, ToTopicPath};
 use error::Result;
 
@@ -40,6 +41,13 @@ pub enum ClientState {
     Disconnected
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ReconnectMethod {
+    ForeverDisconnect,
+    ReconnectAfter(Duration)
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PubOpt(u8);
 
 impl PubOpt {
