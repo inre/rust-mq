@@ -60,7 +60,11 @@ pub trait MqttWrite: WriteBytesExt {
             },
 			&Packet::Publish(ref publish) => {
                 try!(self.write_u8(0b00110000 | publish.retain as u8 | (publish.qos.to_u8() << 1) | ((publish.dup as u8) << 3)));
-                try!(self.write_remaining_length(publish.topic_name.len() + 4 + publish.payload.len()));
+                let mut len = publish.topic_name.len() + 2 + publish.payload.len();
+                if publish.qos != QoS::AtMostOnce && None != publish.pid {
+                    len += 2;
+                }
+                try!(self.write_remaining_length(len));
                 try!(self.write_mqtt_string(publish.topic_name.as_str()));
                 if publish.qos != QoS::AtMostOnce {
                     if let Some(pid) = publish.pid {
@@ -244,7 +248,7 @@ mod test {
     }
 
     #[test]
-    fn write_packet_publish_test() {
+    fn write_packet_publish_at_least_once_test() {
         let publish = Packet::Publish(Box::new(Publish {
             dup: false,
             qos: QoS::AtLeastOnce,
@@ -258,6 +262,23 @@ mod test {
         stream.write_packet(&publish).unwrap();
 
         assert_eq!(stream.get_ref().clone(), vec![0b00110010, 11, 0x00, 0x03, 'a' as u8, '/' as u8, 'b' as u8, 0x00, 0x0a, 0xF1, 0xF2, 0xF3, 0xF4]);
+    }
+
+    #[test]
+    fn write_packet_publish_at_most_once_test() {
+        let publish = Packet::Publish(Box::new(Publish {
+            dup: false,
+            qos: QoS::AtMostOnce,
+            retain: false,
+            topic_name: "a/b".to_owned(),
+            pid: None,
+            payload: Arc::new(vec![0xE1, 0xE2, 0xE3, 0xE4])
+        }));
+
+        let mut stream = Cursor::new(Vec::new());
+        stream.write_packet(&publish).unwrap();
+
+        assert_eq!(stream.get_ref().clone(), vec![0b00110000, 9, 0x00, 0x03, 'a' as u8, '/' as u8, 'b' as u8, 0xE1, 0xE2, 0xE3, 0xE4]);
     }
 
     #[test]
