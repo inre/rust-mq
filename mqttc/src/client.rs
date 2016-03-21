@@ -5,12 +5,12 @@ use std::time::Duration;
 use std::thread;
 use netopt::{Connection, NetworkOptions, NetworkStream};
 use rand::{self, Rng};
-use mqtt3::{MqttRead, MqttWrite, Message};
+use mqtt3::{MqttRead, MqttWrite, Message, QoS};
 use mqtt3::{self, Protocol, Packet, ConnectReturnCode, PacketIdentifier, LastWill, ToTopicPath};
 use mqtt3::Error as MqttError;
 use error::{Error, Result};
 use sub::Subscription;
-use {ClientState, ReconnectMethod, PubOpt, ToPayload};
+use {Mqttc, ClientState, ReconnectMethod, PubOpt, ToPayload, ToSubTopics, ToUnSubTopics};
 
 #[derive(Debug, Clone)]
 pub struct ClientOptions {
@@ -191,11 +191,38 @@ pub struct Client {
     subscriptions: HashMap<String, Subscription>
 }
 
+impl Mqttc for Client {
+    fn publish<T, P>(&mut self, topic: T, payload: P, pubopt: PubOpt) -> Result<()>
+            where T : ToTopicPath, P: ToPayload {
+        self._publish(topic, payload, pubopt);
+        self._flush()
+    }
+
+    fn subscribe<S: ToSubTopics>(&mut self, subs: S) -> Result<()> {
+        //self._subscribe(topic, payload, pubopt);
+        self._flush()
+    }
+
+    fn unsubscribe<U: ToUnSubTopics>(&mut self, unsubs: U) -> Result<()> {
+        //self._unsubscribe(unsubs);
+        self._flush()
+    }
+
+    fn disconnect(mut self) -> Result<()> {
+        //self._disconnect();
+        self._flush()
+    }
+}
+
 impl Client {
     pub fn await(&mut self) -> Result<Option<Message>> {
         loop {
             match self.accept() {
-                Ok(message) => return Ok(message),
+                Ok(message) => {
+                    if let Some(m) = message {
+                        return Ok(Some(m))
+                    }
+                },
                 Err(e) => match e {
                     Error::Timeout => {
                         if self.state == ClientState::Connected {
@@ -221,10 +248,22 @@ impl Client {
         match self.state {
             ClientState::Connected | ClientState::Handshake => match self.conn.read_packet() {
                 Ok(packet) => {
-                    self._parse_packet(&packet)
+                    match self._parse_packet(&packet) {
+                        Ok(message) => Ok(message),
+                        Err(err) => {
+                            self._unbind();
+                            debug!("{:?}", err);
+                            if self._try_reconnect() {
+                                Ok(None)
+                            } else {
+                                Err(err)
+                            }
+                        }
+                    }
                 },
                 Err(err) => match err {
                     mqtt3::Error::UnexpectedEof => {
+                        debug!("{:?}", err);
                         if self._try_reconnect() {
                             Ok(None)
                         } else {
@@ -237,6 +276,7 @@ impl Client {
                         },
                         ErrorKind::UnexpectedEof | ErrorKind::ConnectionRefused |
                         ErrorKind::ConnectionReset | ErrorKind::ConnectionAborted => {
+                            debug!("{:?}", e);
                             self._unbind();
                             if self._try_reconnect() {
                                 Ok(None)
@@ -245,11 +285,13 @@ impl Client {
                             }
                         },
                         _ => {
+                            debug!("{:?}", e);
                             self._unbind();
                             Err(Error::from(e))
                         }
                     },
                     _ => {
+                        debug!("{:?}", err);
                         self._unbind();
                         Err(Error::from(err))
                     }
@@ -308,7 +350,7 @@ impl Client {
                         if connack.code == ConnectReturnCode::Accepted {
                             self.session_present = connack.session_present;
                             self.state = ClientState::Connected;
-                            info!("The client has connected.");
+                            info!("The client has connected successful.");
                             Ok(None)
                         } else {
                             Err(Error::ConnectionRefused(connack.code))
@@ -320,6 +362,21 @@ impl Client {
             ClientState::Connected => {
                 match packet {
                     &Packet::Connack(_) => Err(Error::AlreadyConnected),
+                    &Packet::Puback(pid) => {
+                        if let Some(publish) = self.outgoing.pop_front() {
+                            if publish.pid == Some(pid) {
+                                if publish.qos == QoS::AtLeastOnce {
+                                    Ok(None)
+                                } else {
+                                    Err(Error::ProtocolViolation)
+                                }
+                            } else {
+                                Err(Error::ProtocolViolation)
+                            }
+                        } else {
+                            Err(Error::ProtocolViolation)
+                        }
+                    },
                     &Packet::Pingresp => {
                         self.await_ping = false;
                         Ok(None )
@@ -359,6 +416,33 @@ impl Client {
         let packet = Packet::Connect(connect);
         self._write_packet(&packet);
         self._flush()
+    }
+
+    fn _publish<T: ToTopicPath, P: ToPayload>(&mut self, topic: T, payload: P, pubopt: PubOpt) -> Result<()> {
+        let mut message = Message {
+            topic: try!(topic.to_topic_name()),
+            qos: pubopt.qos(),
+            retain: pubopt.is_retain(),
+            pid: None,
+            payload: payload.to_payload()
+        };
+
+        match message.qos {
+            QoS::AtMostOnce => (),
+            QoS::AtLeastOnce => {
+                message.pid = Some(self._next_pid());
+                self.outgoing.push_back(message.clone());
+            },
+            QoS::ExactlyOnce => {
+                return Err(Error::UnsupportedFeature);
+            }
+        }
+
+        debug!("PUBLISH {} > {} bytes ({:?})", message.topic.path(), message.payload.len(), message.qos);
+        let packet = Packet::Publish(message.to_pub(None, false));
+        debug!("{:?}", packet);
+        self._write_packet(&packet);
+        Ok(())
     }
 
     fn _disconnect(&mut self) {

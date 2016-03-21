@@ -27,8 +27,7 @@ use error::Result;
 const MAX_QOS: QoS = mqtt3::QoS::AtLeastOnce;
 
 pub trait Mqttc {
-    //fn ping(&mut self) -> Result<()>;
-    fn publish<T: ToTopicPath, P: ToPayload>(&mut self, topic: ToTopicPath, payload: ToPayload, pubopt: PubOpt) -> Result<()>;
+    fn publish<T: ToTopicPath, P: ToPayload>(&mut self, topic: T, payload: P, pubopt: PubOpt) -> Result<()>;
     fn subscribe<S: ToSubTopics>(&mut self, subs: S) -> Result<()>;
     fn unsubscribe<U: ToUnSubTopics>(&mut self, unsubs: U) -> Result<()>;
     fn disconnect(self) -> Result<()>;
