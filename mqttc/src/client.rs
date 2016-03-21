@@ -217,6 +217,9 @@ impl Mqttc for Client {
 impl Client {
     pub fn await(&mut self) -> Result<Option<Message>> {
         loop {
+            if self._normalized() {
+                return Ok(None);
+            }
             match self.accept() {
                 Ok(message) => {
                     if let Some(m) = message {
@@ -238,9 +241,6 @@ impl Client {
                     _ => return Err(e)
                 }
             };
-            if self._normalized() {
-                return Ok(None);
-            }
         }
     }
 
@@ -440,8 +440,18 @@ impl Client {
 
         debug!("PUBLISH {} > {} bytes ({:?})", message.topic.path(), message.payload.len(), message.qos);
         let packet = Packet::Publish(message.to_pub(None, false));
-        debug!("{:?}", packet);
         self._write_packet(&packet);
+        Ok(())
+    }
+
+    fn _subscribe<S: ToSubTopics>(&self, subs: S) -> Result<()> {
+        let subscribe = Box::new(mqtt3::Subscribe {
+            pid: self._next_pid(),
+            topics: subs.to_sub_topics()
+        }));
+
+        self.await_suback.push(subscribe);
+        self._write_packet(&Packet::Subscribe(subscribe));
         Ok(())
     }
 
