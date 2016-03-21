@@ -1,6 +1,5 @@
 use std::io::{self, Cursor, Read, Write};
 use std::sync::{Mutex, Arc};
-use std::os::unix::io::{RawFd, AsRawFd};
 
 pub type MockCursor = Cursor<Vec<u8>>;
 

@@ -1,13 +1,10 @@
 use std::net::{TcpListener, TcpStream, SocketAddr, ToSocketAddrs, Shutdown, SocketAddrV4, Ipv4Addr};
 use std::io::{self, Read, Write, BufReader, BufWriter};
 use std::time::Duration;
-use std::os::unix::io::AsRawFd;
-use std::fmt;
 
 use mqtt3::{MqttRead, MqttWrite};
 use ssl::{SslContext, SslStream};
 use mock::MockStream;
-use openssl::ssl::IntoSsl;
 
 use NetworkStream::{
     Tcp,
@@ -98,7 +95,7 @@ impl NetworkStream {
         match *self {
             Tcp(ref s) => s.peer_addr(),
             Ssl(ref s) => s.get_ref().peer_addr(),
-            Mock(ref s) => Ok(SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127,0,0,1), 80)))
+            Mock(_) => Ok(SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127,0,0,1), 80)))
         }
     }
 
@@ -122,7 +119,7 @@ impl NetworkStream {
         match *self {
             Tcp(ref s) => s.set_write_timeout(dur),
             Ssl(ref s) => s.get_ref().set_write_timeout(dur),
-            Mock(ref s) => Ok(())
+            Mock(_) => Ok(())
         }
     }
 }
