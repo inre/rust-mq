@@ -204,7 +204,7 @@ impl Mqttc for Client {
     }
 
     fn unsubscribe<U: ToUnSubTopics>(&mut self, unsubs: U) -> Result<()> {
-        //self._unsubscribe(unsubs);
+        self._unsubscribe(unsubs);
         self._flush()
     }
 
@@ -362,6 +362,22 @@ impl Client {
             ClientState::Connected => {
                 match packet {
                     &Packet::Connack(_) => Err(Error::AlreadyConnected),
+                    &Packet::Publish(publish) => {
+                        let message = Message::from_pub(publish);
+
+                        match message.qos {
+                            QoS::AtMostOnce => (),
+                            QoS::AtLeastOnce => {
+                                message.pid = Some(self._next_pid());
+                                self.incomming.push_back(message.clone());
+                            },
+                            QoS::ExactlyOnce => {
+                                return Err(Error::UnsupportedFeature);
+                            }
+                        }
+
+                        Ok(Message)
+                    },
                     &Packet::Puback(pid) => {
                         if let Some(publish) = self.outgoing.pop_front() {
                             if publish.pid == Some(pid) {
@@ -401,6 +417,20 @@ impl Client {
                                 } else {
                                     Err(Error::ProtocolViolation)
                                 }
+                            } else {
+                                Err(Error::ProtocolViolation)
+                            }
+                        } else {
+                            Err(Error::ProtocolViolation)
+                        }
+                    },
+                    &Packet::Unsuback(pid) => {
+                        if let Some(unsubscribe) = self.await_unsuback.pop_front() {
+                            if unsubscribe.pid == pid {
+                                for topic in unsubscribe.topics.iter() {
+                                    self.subscriptions.remove(topic);
+                                }
+                                Ok(None)
                             } else {
                                 Err(Error::ProtocolViolation)
                             }
@@ -484,6 +514,18 @@ impl Client {
         debug!("SUBSCRIBE {:?}", subscribe.topics);
         self.await_suback.push_back(subscribe.clone());
         self._write_packet(&Packet::Subscribe(subscribe));
+        Ok(())
+    }
+
+    fn _unsubscribe<U: ToUnSubTopics>(&mut self, unsubs: U) -> Result<()> {
+        let iter = try!(unsubs.to_unsubscribe_topics());
+        let unsubscribe = Box::new(mqtt3::Unsubscribe {
+            pid: self._next_pid(),
+            topics: iter.collect()
+        });
+        debug!("UNSUBSCRIBE {:?}", unsubscribe.topics);
+        self.await_unsuback.push_back(unsubscribe.clone());
+        self._write_packet(&Packet::Unsubscribe(unsubscribe));
         Ok(())
     }
 

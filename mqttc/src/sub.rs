@@ -1,4 +1,5 @@
 use std::option;
+use std::vec;
 use {MAX_QOS};
 use error::Result;
 use mqtt3::{SubscribeTopic, TopicPath, PacketIdentifier, QoS};
@@ -40,4 +41,18 @@ impl ToSubTopics for (String, QoS) {
 pub trait ToUnSubTopics {
     type Iter: Iterator<Item=String>;
     fn to_unsubscribe_topics(&self) -> Result<Self::Iter>;
+}
+
+impl ToUnSubTopics for Vec<String> {
+    type Iter = vec::IntoIter<String>;
+    fn to_unsubscribe_topics(&self) -> Result<Self::Iter> {
+        Ok(self.clone().into_iter())
+    }
+}
+
+impl<'a> ToUnSubTopics for &'a str {
+    type Iter = option::IntoIter<String>;
+    fn to_unsubscribe_topics(&self) -> Result<Self::Iter> {
+        Ok(Some(self.to_string()).into_iter())
+    }
 }
