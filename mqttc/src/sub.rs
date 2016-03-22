@@ -3,10 +3,11 @@ use {MAX_QOS};
 use error::Result;
 use mqtt3::{SubscribeTopic, TopicPath, PacketIdentifier, QoS};
 
+#[derive(Debug, Clone)]
 pub struct Subscription {
-    pid: PacketIdentifier,
-    topic_path: TopicPath,
-    qos: QoS
+    pub pid: PacketIdentifier,
+    pub topic_path: TopicPath,
+    pub qos: QoS
 }
 
 pub trait ToSubTopics {
@@ -21,10 +22,10 @@ impl ToSubTopics for SubscribeTopic {
     }
 }
 
-impl ToSubTopics for String {
+impl<'a> ToSubTopics for &'a str {
     type Iter = option::IntoIter<SubscribeTopic>;
     fn to_subscribe_topics(&self) -> Result<Self::Iter> {
-        Ok(Some(SubscribeTopic { topic_path: self.clone(), qos: MAX_QOS }).into_iter())
+        Ok(Some(SubscribeTopic { topic_path: self.to_string(), qos: MAX_QOS }).into_iter())
     }
 }
 

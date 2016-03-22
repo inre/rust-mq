@@ -5,7 +5,7 @@ use std::time::Duration;
 use std::thread;
 use netopt::{Connection, NetworkOptions, NetworkStream};
 use rand::{self, Rng};
-use mqtt3::{MqttRead, MqttWrite, Message, QoS};
+use mqtt3::{MqttRead, MqttWrite, Message, QoS, SubscribeReturnCodes, SubscribeTopic};
 use mqtt3::{self, Protocol, Packet, ConnectReturnCode, PacketIdentifier, LastWill, ToTopicPath};
 use mqtt3::Error as MqttError;
 use error::{Error, Result};
@@ -199,7 +199,7 @@ impl Mqttc for Client {
     }
 
     fn subscribe<S: ToSubTopics>(&mut self, subs: S) -> Result<()> {
-        //self._subscribe(topic, payload, pubopt);
+        self._subscribe(subs);
         self._flush()
     }
 
@@ -217,9 +217,6 @@ impl Mqttc for Client {
 impl Client {
     pub fn await(&mut self) -> Result<Option<Message>> {
         loop {
-            if self._normalized() {
-                return Ok(None);
-            }
             match self.accept() {
                 Ok(message) => {
                     if let Some(m) = message {
@@ -240,7 +237,10 @@ impl Client {
                     },
                     _ => return Err(e)
                 }
-            };
+            }
+            if self._normalized() {
+                return Ok(None);
+            }
         }
     }
 
@@ -377,6 +377,37 @@ impl Client {
                             Err(Error::ProtocolViolation)
                         }
                     },
+                    &Packet::Suback(ref suback) => {
+                        if let Some(subscribe) = self.await_suback.pop_front() {
+                            if subscribe.pid == suback.pid {
+                                if subscribe.topics.len() == suback.return_codes.len() {
+                                    let iter = suback.return_codes.iter().zip(&subscribe.topics);
+                                    for (ref code, ref sub_topic) in iter {
+                                        match **code {
+                                            SubscribeReturnCodes::Success(qos) => {
+                                                let sub = Subscription {
+                                                    pid: subscribe.pid,
+                                                    topic_path: try!(sub_topic.topic_path.to_topic_path()),
+                                                    qos: qos
+                                                };
+                                                self.subscriptions.insert(sub_topic.topic_path.clone(), sub);
+                                            },
+                                            SubscribeReturnCodes::Failure => {
+                                                // ignore subscription
+                                            }
+                                        }
+                                    }
+                                    Ok(None)
+                                } else {
+                                    Err(Error::ProtocolViolation)
+                                }
+                            } else {
+                                Err(Error::ProtocolViolation)
+                            }
+                        } else {
+                            Err(Error::ProtocolViolation)
+                        }
+                    },
                     &Packet::Pingresp => {
                         self.await_ping = false;
                         Ok(None )
@@ -444,13 +475,14 @@ impl Client {
         Ok(())
     }
 
-    fn _subscribe<S: ToSubTopics>(&self, subs: S) -> Result<()> {
+    fn _subscribe<S: ToSubTopics>(&mut self, subs: S) -> Result<()> {
+        let iter = try!(subs.to_subscribe_topics());
         let subscribe = Box::new(mqtt3::Subscribe {
             pid: self._next_pid(),
-            topics: subs.to_sub_topics()
-        }));
-
-        self.await_suback.push(subscribe);
+            topics: iter.collect()
+        });
+        debug!("SUBSCRIBE {:?}", subscribe.topics);
+        self.await_suback.push_back(subscribe.clone());
         self._write_packet(&Packet::Subscribe(subscribe));
         Ok(())
     }
