@@ -110,7 +110,16 @@ pub trait MqttWrite: WriteBytesExt {
                 try!(self.write(&payload));
                 Ok(())
             },
-			&Packet::Unsubscribe(_) => Err(Error::UnsupportedPacketType),
+			&Packet::Unsubscribe(ref unsubscribe) => {
+                try!(self.write(&[0xA2]));
+                let len = 2 + unsubscribe.topics.iter().fold(0, |s, ref topic| s + topic.len() + 2);
+                try!(self.write_remaining_length(len));
+                try!(self.write_u16::<BigEndian>(unsubscribe.pid.0));
+                for topic in unsubscribe.topics.as_ref() as &Vec<String> {
+                    try!(self.write_mqtt_string(topic.as_str()));
+                }
+                Ok(())
+            },
 			&Packet::Unsuback(ref pid) => {
                 try!(self.write(&[0xB0, 0x02]));
                 try!(self.write_u16::<BigEndian>(pid.0));
