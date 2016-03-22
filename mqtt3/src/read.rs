@@ -45,6 +45,13 @@ pub trait MqttRead: ReadBytesExt {
             PacketType::Subscribe => Ok(Packet::Subscribe(try!(raw_packet.read_subscribe(header)))),
             PacketType::Suback => Ok(Packet::Suback(try!(raw_packet.read_suback(header)))),
             PacketType::Unsubscribe => Ok(Packet::Unsubscribe(try!(raw_packet.read_unsubscribe(header)))),
+            PacketType::Unsuback => {
+                if len != 2 {
+                    return Err(Error::PayloadSizeIncorrect)
+                }
+                let pid = try!(raw_packet.read_u16::<BigEndian>());
+                Ok(Packet::Unsuback(PacketIdentifier(pid)))
+            },
             PacketType::Pingreq => Err(Error::IncorrectPacketFormat),
             PacketType::Pingresp => Err(Error::IncorrectPacketFormat),
             _ => Err(Error::UnsupportedPacketType)
