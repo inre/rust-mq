@@ -1,7 +1,7 @@
 use std::collections::{HashMap, VecDeque};
 use std::io::{Read, Write, ErrorKind};
 use std::net::{SocketAddr, ToSocketAddrs};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use std::thread;
 use netopt::{Connection, NetworkOptions, NetworkStream};
 use rand::{self, Rng};
@@ -99,6 +99,7 @@ impl ClientOptions {
             session_present: false,
 
             // Queues
+            last_flush: Instant::now(),
             last_pid: PacketIdentifier::zero(),
             await_ping: false,
             incomming: VecDeque::new(),
@@ -114,37 +115,6 @@ impl ClientOptions {
 
         Ok(client)
     }
-
-    /*pub fn async_connect<A: ToSocketAddrs>(self, addr: A, netopt: NetworkOptions) -> Result<(AsyncClient, Listener)> {
-        if client_id == None {
-            self.generate_client_id()
-        }
-
-        let conn = self._reconnect(addr, netopt);
-
-        let mut client = Client {
-            addr: addr,
-            state: ClientState::Handshake,
-            netopt: netopt,
-            opts: self,
-            conn: conn,
-            session_present: false,
-
-            // Queues
-            last_pid: PacketIdentifier::zero(),
-            await_ping: false,
-
-
-            // Subscriptions
-        };
-
-        // send CONNECT
-        //client.connect();
-        // wait CONNACK
-        //client.await();
-
-        Ok(client)
-    }*/
 
     fn _reconnect(&self, addr: SocketAddr, netopt: &NetworkOptions) -> Result<(Connection, NetworkStream)> {
         let stream = try!(netopt.connect(addr));
@@ -181,10 +151,11 @@ pub struct Client {
     session_present: bool,
 
     // Queues
+    last_flush: Instant,
     last_pid: PacketIdentifier,
     await_ping: bool,
-    incomming: VecDeque<mqtt3::Message>, // only QoS > 0
-    outgoing: VecDeque<mqtt3::Message>,  // only QoS > 0
+    incomming: VecDeque<Box<mqtt3::Message>>, // only QoS > 0
+    outgoing: VecDeque<Box<mqtt3::Message>>,  // only QoS > 0
     await_suback: VecDeque<Box<mqtt3::Subscribe>>,
     await_unsuback: VecDeque<Box<mqtt3::Unsubscribe>>,
     // Subscriptions
@@ -215,7 +186,7 @@ impl Mqttc for Client {
 }
 
 impl Client {
-    pub fn await(&mut self) -> Result<Option<Message>> {
+    pub fn await(&mut self) -> Result<Option<Box<Message>>> {
         loop {
             match self.accept() {
                 Ok(message) => {
@@ -244,56 +215,67 @@ impl Client {
         }
     }
 
-    pub fn accept(&mut self) -> Result<Option<Message>> {
+    pub fn accept(&mut self) -> Result<Option<Box<Message>>> {
         match self.state {
-            ClientState::Connected | ClientState::Handshake => match self.conn.read_packet() {
-                Ok(packet) => {
-                    match self._parse_packet(&packet) {
-                        Ok(message) => Ok(message),
-                        Err(err) => {
-                            self._unbind();
-                            debug!("{:?}", err);
-                            if self._try_reconnect() {
-                                Ok(None)
-                            } else {
-                                Err(err)
+            ClientState::Connected | ClientState::Handshake => {
+                // Don't forget to send PING packets in time
+                if let Some(keep_alive) = self.opts.keep_alive {
+                    let elapsed = self.last_flush.elapsed();
+                    if elapsed >= keep_alive {
+                        return Err(Error::Timeout);
+                    }
+                    self.conn.set_read_timeout(Some(keep_alive - elapsed));
+                }
+
+                match self.conn.read_packet() {
+                    Ok(packet) => {
+                        match self._parse_packet(&packet) {
+                            Ok(message) => Ok(message),
+                            Err(err) => {
+                                self._unbind();
+                                debug!("{:?}", err);
+                                if self._try_reconnect() {
+                                    Ok(None)
+                                } else {
+                                    Err(err)
+                                }
                             }
                         }
-                    }
-                },
-                Err(err) => match err {
-                    mqtt3::Error::UnexpectedEof => {
-                        debug!("{:?}", err);
-                        if self._try_reconnect() {
-                            Ok(None)
-                        } else {
-                            Err(Error::Disconnected)
-                        }
                     },
-                    mqtt3::Error::Io(e) => match e.kind() {
-                        ErrorKind::WouldBlock | ErrorKind::TimedOut => {
-                            Err(Error::Timeout)
-                        },
-                        ErrorKind::UnexpectedEof | ErrorKind::ConnectionRefused |
-                        ErrorKind::ConnectionReset | ErrorKind::ConnectionAborted => {
-                            debug!("{:?}", e);
-                            self._unbind();
+                    Err(err) => match err {
+                        mqtt3::Error::UnexpectedEof => {
+                            debug!("{:?}", err);
                             if self._try_reconnect() {
                                 Ok(None)
                             } else {
                                 Err(Error::Disconnected)
                             }
                         },
+                        mqtt3::Error::Io(e) => match e.kind() {
+                            ErrorKind::WouldBlock | ErrorKind::TimedOut => {
+                                Err(Error::Timeout)
+                            },
+                            ErrorKind::UnexpectedEof | ErrorKind::ConnectionRefused |
+                            ErrorKind::ConnectionReset | ErrorKind::ConnectionAborted => {
+                                debug!("{:?}", e);
+                                self._unbind();
+                                if self._try_reconnect() {
+                                    Ok(None)
+                                } else {
+                                    Err(Error::Disconnected)
+                                }
+                            },
+                            _ => {
+                                debug!("{:?}", e);
+                                self._unbind();
+                                Err(Error::from(e))
+                            }
+                        },
                         _ => {
-                            debug!("{:?}", e);
+                            debug!("{:?}", err);
                             self._unbind();
-                            Err(Error::from(e))
+                            Err(Error::from(err))
                         }
-                    },
-                    _ => {
-                        debug!("{:?}", err);
-                        self._unbind();
-                        Err(Error::from(err))
                     }
                 }
             },
@@ -337,11 +319,12 @@ impl Client {
         (self.state == ClientState::Connected) &&
         (!self.await_ping) &&
         (self.outgoing.len() == 0) &&
+        (self.incomming.len() == 0) &&
         (self.await_suback.len() == 0) &&
         (self.await_unsuback.len() == 0)
     }
 
-    fn _parse_packet(&mut self, packet: &Packet) -> Result<Option<Message>> {
+    fn _parse_packet(&mut self, packet: &Packet) -> Result<Option<Box<Message>>> {
         trace!("{:?}", packet);
         match self.state {
             ClientState::Handshake => {
@@ -362,21 +345,25 @@ impl Client {
             ClientState::Connected => {
                 match packet {
                     &Packet::Connack(_) => Err(Error::AlreadyConnected),
-                    &Packet::Publish(publish) => {
-                        let message = Message::from_pub(publish);
+                    &Packet::Publish(ref publish) => {
+                        let message = try!(Message::from_pub(publish.clone()));
 
                         match message.qos {
                             QoS::AtMostOnce => (),
                             QoS::AtLeastOnce => {
-                                message.pid = Some(self._next_pid());
                                 self.incomming.push_back(message.clone());
+                                let pid = message.pid.unwrap();
+                                debug!("PUBACK {}", pid.0);
+                                self._write_packet(&Packet::Puback(pid));
+                                try!(self._flush());
+                                let _ = self.incomming.pop_front();
                             },
                             QoS::ExactlyOnce => {
                                 return Err(Error::UnsupportedFeature);
                             }
                         }
 
-                        Ok(Message)
+                        Ok(Some(message))
                     },
                     &Packet::Puback(pid) => {
                         if let Some(publish) = self.outgoing.pop_front() {
@@ -480,13 +467,13 @@ impl Client {
     }
 
     fn _publish<T: ToTopicPath, P: ToPayload>(&mut self, topic: T, payload: P, pubopt: PubOpt) -> Result<()> {
-        let mut message = Message {
+        let mut message = Box::new(Message {
             topic: try!(topic.to_topic_name()),
             qos: pubopt.qos(),
             retain: pubopt.is_retain(),
             pid: None,
             payload: payload.to_payload()
-        };
+        });
 
         match message.qos {
             QoS::AtMostOnce => (),
@@ -541,6 +528,7 @@ impl Client {
     fn _flush(&mut self) -> Result<()> {
         // TODO: in case of disconnection, trying to reconnect
         try!(self.conn.flush());
+        self.last_flush = Instant::now();
         Ok(())
     }
 
