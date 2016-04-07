@@ -16,12 +16,18 @@ pub struct SslContext {
 impl Default for SslContext {
     fn default() -> SslContext {
         SslContext {
-            inner: Arc::new(ssl::SslContext::new(SslMethod::Sslv23).unwrap())
+            inner: Arc::new(ssl::SslContext::new(SslMethod::Tlsv1_2).unwrap())
         }
     }
 }
 
 impl SslContext {
+    pub fn new(context: ssl::SslContext) -> Self {
+        SslContext {
+            inner: Arc::new(context)
+        }
+    }
+
     pub fn with_cert_and_key<C, K>(cert: C, key: K) -> Result<SslContext, SslError>
     where C: AsRef<Path>, K: AsRef<Path> {
         let mut ctx = try!(ssl::SslContext::new(SslMethod::Sslv23));
