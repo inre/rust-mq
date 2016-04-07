@@ -1,3 +1,4 @@
+#![feature(time2)] 
 #[macro_use] extern crate log;
 extern crate rand;
 extern crate byteorder;
