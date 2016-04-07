@@ -23,6 +23,13 @@ impl ToSubTopics for SubscribeTopic {
     }
 }
 
+impl ToSubTopics for Vec<SubscribeTopic> {
+    type Iter = vec::IntoIter<SubscribeTopic>;
+    fn to_subscribe_topics(&self) -> Result<Self::Iter> {
+        Ok(self.clone().into_iter()) //FIXME:
+    }
+}
+
 impl<'a> ToSubTopics for &'a str {
     type Iter = option::IntoIter<SubscribeTopic>;
     fn to_subscribe_topics(&self) -> Result<Self::Iter> {
