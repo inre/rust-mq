@@ -130,8 +130,7 @@ pub trait MqttRead: ReadBytesExt {
         } else {
             None
         };
-        let payload_len = header.len - topic_name.len() - 2;
-        let mut payload = Vec::with_capacity(payload_len);
+        let mut payload = Vec::new();
         try!(self.read_to_end(&mut payload));
 
         Ok(Box::new(
