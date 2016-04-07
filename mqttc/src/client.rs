@@ -1,13 +1,12 @@
 use std::collections::{HashMap, VecDeque};
-use std::io::{Read, Write, ErrorKind};
+use std::io::{Write, ErrorKind};
 use std::net::{SocketAddr, ToSocketAddrs};
 use std::time::{Duration, Instant};
 use std::thread;
 use netopt::{Connection, NetworkOptions, NetworkStream};
 use rand::{self, Rng};
-use mqtt3::{MqttRead, MqttWrite, Message, QoS, SubscribeReturnCodes, SubscribeTopic};
+use mqtt3::{MqttRead, MqttWrite, Message, QoS, SubscribeReturnCodes};
 use mqtt3::{self, Protocol, Packet, ConnectReturnCode, PacketIdentifier, LastWill, ToTopicPath};
-use mqtt3::Error as MqttError;
 use error::{Error, Result};
 use sub::Subscription;
 use {Mqttc, ClientState, ReconnectMethod, PubOpt, ToPayload, ToSubTopics, ToUnSubTopics};
@@ -118,8 +117,8 @@ impl ClientOptions {
 
     fn _reconnect(&self, addr: SocketAddr, netopt: &NetworkOptions) -> Result<(Connection, NetworkStream)> {
         let stream = try!(netopt.connect(addr));
-        stream.set_read_timeout(self.keep_alive);
-        stream.set_write_timeout(self.keep_alive);
+        stream.set_read_timeout(self.keep_alive).unwrap();
+        stream.set_write_timeout(self.keep_alive).unwrap();
         Ok((try!(Connection::new(&stream)), stream))
     }
 
@@ -165,17 +164,17 @@ pub struct Client {
 impl Mqttc for Client {
     fn publish<T, P>(&mut self, topic: T, payload: P, pubopt: PubOpt) -> Result<()>
             where T : ToTopicPath, P: ToPayload {
-        self._publish(topic, payload, pubopt);
+        try!(self._publish(topic, payload, pubopt));
         self._flush()
     }
 
     fn subscribe<S: ToSubTopics>(&mut self, subs: S) -> Result<()> {
-        self._subscribe(subs);
+        try!(self._subscribe(subs));
         self._flush()
     }
 
     fn unsubscribe<U: ToUnSubTopics>(&mut self, unsubs: U) -> Result<()> {
-        self._unsubscribe(unsubs);
+        try!(self._unsubscribe(unsubs));
         self._flush()
     }
 
@@ -224,7 +223,7 @@ impl Client {
                     if elapsed >= keep_alive {
                         return Err(Error::Timeout);
                     }
-                    self.conn.set_read_timeout(Some(keep_alive - elapsed));
+                    try!(self.conn.set_read_timeout(Some(keep_alive - elapsed)));
                 }
 
                 match self.conn.read_packet() {
