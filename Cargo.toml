@@ -1,5 +1,5 @@
 [package]
-name = "rust-mq"
+name = "rustmq"
 version = "0.1.0"
 authors = ["Maksim V. <inre.storm@gmail.com>"]
 description = "RustMQ is the MQTT broker written on pure Rust."
@@ -12,6 +12,20 @@ exclude       = [
   "tmp/**/*"
 ]
 
+[[bin]]
+name = "mqttc"
+path = "src/bin/mqttc.rs"
+
+[lib]
+name = "rustmq"
+path = "src/lib.rs"
+
 [dependencies]
+term = "0.2"
+getopts = "0.2"
+openssl = { version = "0.7", features = ["tlsv1_1", "tlsv1_2"] }
+log = "0.3"
+env_logger = "0.3"
 "mqtt3" = { path = "mqtt3" }
 "netopt" = { path = "netopt" }
+"mqttc" = { path = "mqttc" }

@@ -49,6 +49,10 @@ impl ClientOptions {
         self.client_id = Some(client_id); self
     }
 
+    pub fn set_clean_session(&mut self, clean_session: bool) -> &mut ClientOptions {
+        self.clean_session = clean_session; self
+    }
+
     pub fn generate_client_id(&mut self) -> &mut ClientOptions {
         let mut rng = rand::thread_rng();
         let id = rng.gen::<u32>();
@@ -73,6 +77,10 @@ impl ClientOptions {
             retain: pub_opt.is_retain()
         });
         Ok(())
+    }
+
+    pub fn set_last_will_opt(&mut self, last_will: Option<LastWill>) -> &mut ClientOptions {
+        self.last_will = last_will; self
     }
 
     pub fn set_reconnect(&mut self, reconnect: ReconnectMethod) -> &mut ClientOptions {
