@@ -1,6 +1,7 @@
 use mqtt3::{MqttRead, MqttWrite};
 use std::io::{self, Read, Write};
 use std::net::Shutdown;
+use std::time::Duration;
 use {NetworkStream, NetworkReader, NetworkWriter};
 
 pub struct Connection {
@@ -16,6 +17,10 @@ impl Connection {
             reader: NetworkReader::new(try!(stream.try_clone())),
             writer: NetworkWriter::new(try!(stream.try_clone()))
         })
+    }
+
+    pub fn set_read_timeout(&self, dur: Option<Duration>) -> io::Result<()> {
+        self.stream.set_read_timeout(dur)
     }
 
     pub fn terminate(&self) -> io::Result<()> {
