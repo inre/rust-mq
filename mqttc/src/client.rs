@@ -92,9 +92,9 @@ impl ClientOptions {
             self.generate_client_id();
         }
 
-        let addr = try!(addr.to_socket_addrs()).next().expect("socket address is broken");
+        let addr = try!(addr.to_socket_addrs()).next().expect("Socket address is broken");
 
-        info!("Establish connection to {}", addr);
+        info!(" Connecting to {}", addr);
         let (conn, _) = try!(self._reconnect(addr, &netopt));
 
         let mut client = Client {
@@ -240,7 +240,7 @@ impl Client {
                             Ok(message) => Ok(message),
                             Err(err) => {
                                 self._unbind();
-                                debug!("{:?}", err);
+                                error!("{:?}", err);
                                 if self._try_reconnect() {
                                     Ok(None)
                                 } else {
@@ -251,7 +251,7 @@ impl Client {
                     },
                     Err(err) => match err {
                         mqtt3::Error::UnexpectedEof => {
-                            debug!("{:?}", err);
+                            error!("{:?}", err);
                             if self._try_reconnect() {
                                 Ok(None)
                             } else {
@@ -264,7 +264,7 @@ impl Client {
                             },
                             ErrorKind::UnexpectedEof | ErrorKind::ConnectionRefused |
                             ErrorKind::ConnectionReset | ErrorKind::ConnectionAborted => {
-                                debug!("{:?}", e);
+                                error!("{:?}", e);
                                 self._unbind();
                                 if self._try_reconnect() {
                                     Ok(None)
@@ -273,13 +273,13 @@ impl Client {
                                 }
                             },
                             _ => {
-                                debug!("{:?}", e);
+                                error!("{:?}", e);
                                 self._unbind();
                                 Err(Error::from(e))
                             }
                         },
                         _ => {
-                            debug!("{:?}", err);
+                            error!("{:?}", err);
                             self._unbind();
                             Err(Error::from(err))
                         }
@@ -298,7 +298,7 @@ impl Client {
 
     pub fn reconnect(&mut self) -> Result<()> {
         if self.state == ClientState::Connected {
-            warn!("The client is already connected.");
+            warn!("mqttc is already connected");
             return Ok(());
         };
         let (conn, _) = try!(self.opts._reconnect(self.addr, &self.netopt));
@@ -308,7 +308,7 @@ impl Client {
     }
 
     pub fn ping(&mut self) -> Result<()> {
-        debug!("PING");
+        debug!("       Pingreq");
         self.await_ping = true;
         self._write_packet(&Packet::Pingreq);
         self._flush()
@@ -340,7 +340,7 @@ impl Client {
                         if connack.code == ConnectReturnCode::Accepted {
                             self.session_present = connack.session_present;
                             self.state = ClientState::Connected;
-                            info!("The client has connected successful.");
+                            info!("    Connection accepted");
                             Ok(None)
                         } else {
                             Err(Error::ConnectionRefused(connack.code))
@@ -354,13 +354,13 @@ impl Client {
                     &Packet::Connack(_) => Err(Error::AlreadyConnected),
                     &Packet::Publish(ref publish) => {
                         let message = try!(Message::from_pub(publish.clone()));
-
+                        debug!("       Publish {} {} < {} bytes", message.qos.to_u8(), message.topic.path(), message.payload.len());
                         match message.qos {
                             QoS::AtMostOnce => (),
                             QoS::AtLeastOnce => {
                                 self.incomming.push_back(message.clone());
                                 let pid = message.pid.unwrap();
-                                debug!("PUBACK {}", pid.0);
+                                //debug!("        Puback {}", pid.0);
                                 self._write_packet(&Packet::Puback(pid));
                                 try!(self._flush());
                                 let _ = self.incomming.pop_front();
@@ -457,7 +457,7 @@ impl Client {
         match self.opts.reconnect {
             ReconnectMethod::ForeverDisconnect => false,
             ReconnectMethod::ReconnectAfter(dur) => {
-                info!("Trying to reconnect in {} seconds...", dur.as_secs());
+                info!("  Reconnect in {} seconds", dur.as_secs());
                 thread::sleep(dur);
                 let _ = self.reconnect();
                 true
@@ -467,7 +467,7 @@ impl Client {
 
     fn _connect(&mut self) -> Result<()> {
         let connect = self.opts._generate_connect_packet();
-        debug!("CONNECT client_id: {}", connect.client_id);
+            debug!("       Connect {}", connect.client_id);
         let packet = Packet::Connect(connect);
         self._write_packet(&packet);
         self._flush()
@@ -493,7 +493,7 @@ impl Client {
             }
         }
 
-        debug!("PUBLISH {} > {} bytes ({:?})", message.topic.path(), message.payload.len(), message.qos);
+        debug!("       Publish {} {} > {} bytes", message.qos.to_u8(), message.topic.path(), message.payload.len());
         let packet = Packet::Publish(message.to_pub(None, false));
         self._write_packet(&packet);
         Ok(())
@@ -505,7 +505,7 @@ impl Client {
             pid: self._next_pid(),
             topics: iter.collect()
         });
-        debug!("SUBSCRIBE {:?}", subscribe.topics);
+        debug!("     Subscribe {:?}", subscribe.topics);
         self.await_suback.push_back(subscribe.clone());
         self._write_packet(&Packet::Subscribe(subscribe));
         Ok(())
@@ -517,7 +517,7 @@ impl Client {
             pid: self._next_pid(),
             topics: iter.collect()
         });
-        debug!("UNSUBSCRIBE {:?}", unsubscribe.topics);
+        debug!("   Unsubscribe {:?}", unsubscribe.topics);
         self.await_unsuback.push_back(unsubscribe.clone());
         self._write_packet(&Packet::Unsubscribe(unsubscribe));
         Ok(())
@@ -545,7 +545,7 @@ impl Client {
         self.await_suback.clear();
         self.await_ping = false;
         self.state = ClientState::Disconnected;
-        info!("The client has been disconnected.");
+        info!("  Disconnected {}", self.opts.client_id.clone().unwrap());
     }
 
     #[inline]
@@ -570,6 +570,5 @@ mod test {
         netopt.attach(stream);
         // Connect and create MQTT client
         let client = options.connect("127.0.0.1:1883", netopt).unwrap();
-
     }
 }
