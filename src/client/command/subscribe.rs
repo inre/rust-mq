@@ -18,11 +18,11 @@ pub struct SubscribeCommand {
     pub port: u16,
     pub clean_session: bool,
     pub last_will: Option<LastWill>,
+    pub keep_alive: u16,
 
     // Preferences
     pub log_file: Option<String>,
     pub debug: bool,
-    pub keep_alive: u16,
     pub reconnect: bool,
     pub protocol: Protocol,
     pub silence: bool,
@@ -103,19 +103,19 @@ impl Command for SubscribeCommand {
             opts.set_client_id(client_id.clone());
         };
 
-        if !self.silence {
+        if !self.debug && !self.silence {
             print_legend();
         };
 
         let address = format!("{}:{}", self.address, self.port);
 
-        if !self.silence {
+        if !self.debug && !self.silence {
             print_message("Connecting to", format!("{}", address), term::color::BRIGHT_GREEN);
         };
 
         let mut client = opts.connect(address.as_str(), netopt).unwrap();
 
-        if !self.silence {
+        if !self.debug && !self.silence {
             print_topics(&self.topics);
         };
 
@@ -131,7 +131,9 @@ impl Command for SubscribeCommand {
                         QoS::AtLeastOnce => term::color::BRIGHT_MAGENTA,
                         QoS::ExactlyOnce => term::color::BRIGHT_BLUE
                     };
-                    print_message(message.topic.path, payload, color);
+                    if !self.debug {
+                        print_message(message.topic.path, payload, color);
+                    }
                 },
                 None => {
                     //println!(".");
