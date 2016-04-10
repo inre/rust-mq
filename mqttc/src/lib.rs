@@ -1,4 +1,4 @@
-#![feature(time2)] 
+#![feature(time2)]
 #[macro_use] extern crate log;
 extern crate rand;
 extern crate byteorder;
@@ -51,6 +51,14 @@ pub enum ReconnectMethod {
 pub struct PubOpt(u8);
 
 impl PubOpt {
+    pub fn new(qos: QoS, retain: bool) -> PubOpt {
+        let mut opt = PubOpt(qos.to_u8());
+        if retain {
+            opt = opt & PubOpt::retain();
+        }
+        opt
+    }
+
     #[inline]
     pub fn at_most_once() -> PubOpt {
         PubOpt(0x00)
