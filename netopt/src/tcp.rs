@@ -160,10 +160,10 @@ impl MqttWrite for NetworkStream {}
 
 #[cfg(test)]
 mod test {
-    use std::net::{TcpListener, TcpStream, Shutdown};
-    use std::io::{self, Read, Write};
+    use std::net::Shutdown;
+    use std::io::{Read, Write};
     use std::thread;
-    use super::{NetworkOptions, NetworkListener, NetworkStream};
+    use super::{NetworkOptions, NetworkStream};
     use mock::MockStream;
 
     #[test]
@@ -177,7 +177,7 @@ mod test {
             client.shutdown(Shutdown::Both).unwrap();
         });
 
-        let (mut stream, addr) = listener.accept().unwrap();
+        let (mut stream, _) = listener.accept().unwrap();
         let mut req = Vec::new();
         stream.read_to_end(&mut req).unwrap();
         assert_eq!(req, vec![0, 1, 2, 3, 4, 5]);

@@ -103,9 +103,9 @@ mod test {
     fn swap_test() {
         let mut mock = MockStream::new();
         let mut vec = Vec::new();
-        mock.write(&[8,9,10]);
+        mock.write(&[8,9,10]).unwrap();
         mock.swap();
-        mock.read_to_end(&mut vec);
+        mock.read_to_end(&mut vec).unwrap();
         assert_eq!(vec, vec![8,9,10]);
     }
 }
