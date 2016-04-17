@@ -42,6 +42,27 @@ pub trait MqttRead: ReadBytesExt {
                 let pid = try!(raw_packet.read_u16::<BigEndian>());
                 Ok(Packet::Puback(PacketIdentifier(pid)))
             },
+            PacketType::Pubrec => {
+                if len != 2 {
+                    return Err(Error::PayloadSizeIncorrect)
+                }
+                let pid = try!(raw_packet.read_u16::<BigEndian>());
+                Ok(Packet::Pubrec(PacketIdentifier(pid)))
+            },
+            PacketType::Pubrel => {
+                if len != 2 {
+                    return Err(Error::PayloadSizeIncorrect)
+                }
+                let pid = try!(raw_packet.read_u16::<BigEndian>());
+                Ok(Packet::Pubrel(PacketIdentifier(pid)))
+            },
+            PacketType::Pubcomp => {
+                if len != 2 {
+                    return Err(Error::PayloadSizeIncorrect)
+                }
+                let pid = try!(raw_packet.read_u16::<BigEndian>());
+                Ok(Packet::Pubcomp(PacketIdentifier(pid)))
+            },
             PacketType::Subscribe => Ok(Packet::Subscribe(try!(raw_packet.read_subscribe(header)))),
             PacketType::Suback => Ok(Packet::Suback(try!(raw_packet.read_suback(header)))),
             PacketType::Unsubscribe => Ok(Packet::Unsubscribe(try!(raw_packet.read_unsubscribe(header)))),

@@ -79,13 +79,21 @@ pub trait MqttWrite: WriteBytesExt {
                 try!(self.write_u16::<BigEndian>(pid.0));
                 Ok(())
             },
-			&Packet::Pubrec(_) => Err(Error::UnsupportedPacketType),
-			&Packet::Pubrel(ref pid) => {
+            &Packet::Pubrec(ref pid) => {
+                try!(self.write(&[0x50, 0x02]));
+                try!(self.write_u16::<BigEndian>(pid.0));
+                Ok(())
+            },
+            &Packet::Pubrel(ref pid) => {
                 try!(self.write(&[0x62, 0x02]));
                 try!(self.write_u16::<BigEndian>(pid.0));
                 Ok(())
             },
-			&Packet::Pubcomp(_) => Err(Error::UnsupportedPacketType),
+            &Packet::Pubcomp(ref pid) => {
+                try!(self.write(&[0x70, 0x02]));
+                try!(self.write_u16::<BigEndian>(pid.0));
+                Ok(())
+            },
 			&Packet::Subscribe(ref subscribe) => {
                 try!(self.write(&[0x82]));
                 let len = 2 + subscribe.topics.iter().fold(0, |s, ref t| s + t.topic_path.len() + 3);
