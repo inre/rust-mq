@@ -8,6 +8,12 @@ extern crate netopt;
 mod error;
 mod sub;
 mod client;
+pub mod store;
+
+pub use error::{
+    Error,
+    Result
+};
 
 pub use sub::{
     ToSubTopics,
@@ -22,8 +28,7 @@ pub use client::{
 use std::sync::Arc;
 use std::ops;
 use std::time::Duration;
-use mqtt3::{QoS, ToTopicPath};
-use error::Result;
+use mqtt3::{QoS, ToTopicPath, Message, PacketIdentifier};
 
 const MAX_QOS: QoS = mqtt3::QoS::AtLeastOnce;
 

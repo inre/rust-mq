@@ -10,8 +10,9 @@ use mqtt3::{self, Protocol, Packet, ConnectReturnCode, PacketIdentifier, LastWil
 use error::{Error, Result};
 use sub::Subscription;
 use {Mqttc, ClientState, ReconnectMethod, PubOpt, ToPayload, ToSubTopics, ToUnSubTopics};
+use store::Store;
 
-#[derive(Debug, Clone)]
+//#[derive(Clone)]
 pub struct ClientOptions {
     protocol: Protocol,
     keep_alive: Option<Duration>,
@@ -20,7 +21,10 @@ pub struct ClientOptions {
     last_will: Option<LastWill>,
     username: Option<String>,
     password: Option<String>,
-    reconnect: ReconnectMethod
+    reconnect: ReconnectMethod,
+
+    incomming_store: Option<Box<Store>>,
+    outgoing_store: Option<Box<Store>>
 }
 
 impl ClientOptions {
@@ -33,7 +37,9 @@ impl ClientOptions {
             last_will: None,
             username: None,
             password: None,
-            reconnect: ReconnectMethod::ForeverDisconnect
+            reconnect: ReconnectMethod::ForeverDisconnect,
+            incomming_store: None,
+            outgoing_store: None
         }
     }
 
@@ -51,6 +57,14 @@ impl ClientOptions {
 
     pub fn set_clean_session(&mut self, clean_session: bool) -> &mut ClientOptions {
         self.clean_session = clean_session; self
+    }
+
+    pub fn set_incomming_store(&mut self, store: Box<Store>) -> &mut ClientOptions {
+        self.incomming_store = Some(store); self
+    }
+
+    pub fn set_outgoing_store(&mut self, store: Box<Store>) -> &mut ClientOptions {
+        self.outgoing_store = Some(store); self
     }
 
     pub fn generate_client_id(&mut self) -> &mut ClientOptions {
@@ -109,8 +123,11 @@ impl ClientOptions {
             last_flush: Instant::now(),
             last_pid: PacketIdentifier::zero(),
             await_ping: false,
-            incomming: VecDeque::new(),
-            outgoing: VecDeque::new(),
+            incomming_pub: VecDeque::new(),
+            incomming_rel: VecDeque::new(),
+            outgoing_ack: VecDeque::new(),
+            outgoing_rec: VecDeque::new(),
+            outgoing_comp: VecDeque::new(),
             await_suback: VecDeque::new(),
             await_unsuback: VecDeque::new(),
             subscriptions: HashMap::new()
@@ -161,8 +178,11 @@ pub struct Client {
     last_flush: Instant,
     last_pid: PacketIdentifier,
     await_ping: bool,
-    incomming: VecDeque<Box<mqtt3::Message>>, // only QoS > 0
-    outgoing: VecDeque<Box<mqtt3::Message>>,  // only QoS > 0
+    incomming_pub: VecDeque<Box<Message>>, // QoS > 0
+    incomming_rel: VecDeque<PacketIdentifier>,    // QoS 2
+    outgoing_ack: VecDeque<Box<Message>>,  // QoS 1
+    outgoing_rec: VecDeque<Box<Message>>,  // QoS 2
+    outgoing_comp: VecDeque<PacketIdentifier>, // QoS 2
     await_suback: VecDeque<Box<mqtt3::Subscribe>>,
     await_unsuback: VecDeque<Box<mqtt3::Unsubscribe>>,
     // Subscriptions
@@ -236,7 +256,7 @@ impl Client {
 
                 match self.conn.read_packet() {
                     Ok(packet) => {
-                        match self._parse_packet(&packet) {
+                        match self._parse_packet(packet) {
                             Ok(message) => Ok(message),
                             Err(err) => {
                                 self._unbind();
@@ -314,6 +334,23 @@ impl Client {
         self._flush()
     }
 
+    pub fn complete(&mut self, pid: PacketIdentifier) -> Result<()> {
+        let same_pid = self.incomming_rel.pop_back();
+        if same_pid == Some(pid) {
+            self._write_packet(&Packet::Pubcomp(pid));
+            try!(self._flush());
+
+            if let Some(ref mut store) = self.opts.incomming_store {
+                try!(store.delete(pid));
+                Ok(())
+            } else {
+                return Err(Error::IncommingStorageAbsent);
+            }
+        } else {
+            Err(Error::ProtocolViolation)
+        }
+    }
+
     pub fn set_reconnect(&mut self, reconnect: ReconnectMethod) {
         self.opts.reconnect = reconnect;
     }
@@ -325,18 +362,20 @@ impl Client {
     fn _normalized(&self) -> bool {
         (self.state == ClientState::Connected) &&
         (!self.await_ping) &&
-        (self.outgoing.len() == 0) &&
-        (self.incomming.len() == 0) &&
+        (self.outgoing_ack.len() == 0) &&
+        (self.outgoing_rec.len() == 0) &&
+        (self.incomming_pub.len() == 0) &&
+        (self.incomming_rel.len() == 0) &&
         (self.await_suback.len() == 0) &&
         (self.await_unsuback.len() == 0)
     }
 
-    fn _parse_packet(&mut self, packet: &Packet) -> Result<Option<Box<Message>>> {
+    fn _parse_packet(&mut self, packet: Packet) -> Result<Option<Box<Message>>> {
         trace!("{:?}", packet);
         match self.state {
             ClientState::Handshake => {
                 match packet {
-                    &Packet::Connack(connack) => {
+                    Packet::Connack(ref connack) => {
                         if connack.code == ConnectReturnCode::Accepted {
                             self.session_present = connack.session_present;
                             self.state = ClientState::Connected;
@@ -351,43 +390,68 @@ impl Client {
             },
             ClientState::Connected => {
                 match packet {
-                    &Packet::Connack(_) => Err(Error::AlreadyConnected),
-                    &Packet::Publish(ref publish) => {
+                    Packet::Connack(_) => Err(Error::AlreadyConnected),
+                    Packet::Publish(ref publish) => {
                         let message = try!(Message::from_pub(publish.clone()));
-                        debug!("       Publish {} {} < {} bytes", message.qos.to_u8(), message.topic.path(), message.payload.len());
-                        match message.qos {
-                            QoS::AtMostOnce => (),
-                            QoS::AtLeastOnce => {
-                                self.incomming.push_back(message.clone());
-                                let pid = message.pid.unwrap();
-                                //debug!("        Puback {}", pid.0);
-                                self._write_packet(&Packet::Puback(pid));
-                                try!(self._flush());
-                                let _ = self.incomming.pop_front();
-                            },
-                            QoS::ExactlyOnce => {
-                                return Err(Error::UnsupportedFeature);
-                            }
-                        }
-
-                        Ok(Some(message))
+                        self._handle_message(message)
                     },
-                    &Packet::Puback(pid) => {
-                        if let Some(publish) = self.outgoing.pop_front() {
-                            if publish.pid == Some(pid) {
-                                if publish.qos == QoS::AtLeastOnce {
-                                    Ok(None)
-                                } else {
-                                    Err(Error::ProtocolViolation)
-                                }
+                    Packet::Puback(pid) => {
+                        if let Some(message) = self.outgoing_ack.pop_front() {
+                            if message.pid == Some(pid) {
+                                Ok(None)
                             } else {
-                                Err(Error::ProtocolViolation)
+                                Err(Error::UnhandledPuback(pid))
                             }
                         } else {
-                            Err(Error::ProtocolViolation)
+                            Err(Error::UnhandledPuback(pid))
                         }
                     },
-                    &Packet::Suback(ref suback) => {
+                    Packet::Pubrec(pid) => {
+                        if let Some(message) = self.outgoing_rec.pop_front() {
+                            if message.pid == Some(pid) {
+                                self._write_packet(&Packet::Pubrel(pid));
+                                try!(self._flush());
+
+                                self.outgoing_comp.push_back(pid);
+                                if let Some(ref mut store) = self.opts.outgoing_store {
+                                    try!(store.delete(pid));
+                                } else {
+                                    return Err(Error::IncommingStorageAbsent);
+                                }
+
+                                Ok(None)
+                            } else {
+                                Err(Error::UnhandledPubrec(pid))
+                            }
+                        } else {
+                            Err(Error::UnhandledPubrec(pid))
+                        }
+                    },
+                    Packet::Pubrel(pid) => {
+                        if let Some(message) = self.incomming_pub.pop_front() {
+                            if message.pid == Some(pid) {
+                                let message = if let Some(ref mut store) = self.opts.incomming_store {
+                                    try!(store.get(pid))
+                                } else {
+                                    return Err(Error::IncommingStorageAbsent);
+                                };
+                                self.incomming_rel.push_back(pid);
+                                Ok(Some(message))
+                            } else {
+                                Err(Error::UnhandledPubrel(pid))
+                            }
+                        } else {
+                            Err(Error::UnhandledPubrel(pid))
+                        }
+                    },
+                    Packet::Pubcomp(pid) => {
+                        if let Some(pid) = self.outgoing_comp.pop_front() {
+                            Ok(None)
+                        } else {
+                            Err(Error::UnhandledPubcomp(pid))
+                        }
+                    },
+                    Packet::Suback(ref suback) => {
                         if let Some(subscribe) = self.await_suback.pop_front() {
                             if subscribe.pid == suback.pid {
                                 if subscribe.topics.len() == suback.return_codes.len() {
@@ -418,7 +482,7 @@ impl Client {
                             Err(Error::ProtocolViolation)
                         }
                     },
-                    &Packet::Unsuback(pid) => {
+                    Packet::Unsuback(pid) => {
                         if let Some(unsubscribe) = self.await_unsuback.pop_front() {
                             if unsubscribe.pid == pid {
                                 for topic in unsubscribe.topics.iter() {
@@ -432,15 +496,49 @@ impl Client {
                             Err(Error::ProtocolViolation)
                         }
                     },
-                    &Packet::Pingresp => {
+                    Packet::Pingresp => {
                         self.await_ping = false;
                         Ok(None )
                     },
-                    &Packet::Pubcomp | &Packet::Pubrec | &Packet::Pubrel => Err(Error::UnsupportedFeature),
                     _ => Err(Error::UnrecognizedPacket)
                 }
             },
             ClientState::Disconnected => Err(Error::ConnectionAbort)
+        }
+    }
+
+    fn _handle_message(&mut self, message: Box<Message>) -> Result<Option<Box<Message>>> {
+        debug!("       Publish {} {} < {} bytes", message.qos.to_u8(), message.topic.path(), message.payload.len());
+        match message.qos {
+            QoS::AtMostOnce => {
+                Ok(Some(message))
+            },
+            QoS::AtLeastOnce => {
+                self.incomming_pub.push_back(message.clone());
+                let pid = message.pid.unwrap();
+                //debug!("        Puback {}", pid.0);
+                self._write_packet(&Packet::Puback(pid));
+                try!(self._flush());
+                // FIXME: can be repeated
+                let _ = self.incomming_pub.pop_front();
+
+                Ok(Some(message))
+            },
+            QoS::ExactlyOnce => {
+                self.incomming_pub.push_back(message.clone());
+                let pid = message.pid.unwrap();
+
+                if let Some(ref mut store) = self.opts.incomming_store {
+                    try!(store.put(message));
+                } else {
+                    return Err(Error::IncommingStorageAbsent);
+                }
+
+                self._write_packet(&Packet::Pubrec(pid));
+                try!(self._flush());
+
+                Ok(None)
+            }
         }
     }
 
@@ -486,10 +584,16 @@ impl Client {
             QoS::AtMostOnce => (),
             QoS::AtLeastOnce => {
                 message.pid = Some(self._next_pid());
-                self.outgoing.push_back(message.clone());
+                self.outgoing_ack.push_back(message.clone());
             },
             QoS::ExactlyOnce => {
-                return Err(Error::UnsupportedFeature);
+                message.pid = Some(self._next_pid());
+                if let Some(ref mut store) = self.opts.outgoing_store {
+                    try!(store.put(message.clone()));
+                } else {
+                    return Err(Error::OutgoingStorageAbsent);
+                }
+                self.outgoing_rec.push_back(message.clone());
             }
         }
 
@@ -529,6 +633,7 @@ impl Client {
 
     #[inline]
     fn _write_packet(&mut self, packet: &Packet) {
+        trace!("{:?}", packet);
         self.conn.write_packet(&packet).unwrap();
     }
 
