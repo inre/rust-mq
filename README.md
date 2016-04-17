@@ -4,9 +4,9 @@ This repository is the bundle of crates devoted to the MQTT protocol.
 
 ## Crates
 
-* mqtt3 - MQTT protocol reader/writer
-* netopt - TCP/SSL connection
-* mqttc - Rust MQTT client
+* mqtt3 - MQTT protocol reader/writer [![Crates.io](https://img.shields.io/crates/v/mqtt3.svg)]
+* netopt - TCP/SSL connection [![Crates.io](https://img.shields.io/crates/v/netopt.svg)]
+* mqttc - Rust MQTT client [![Crates.io](https://img.shields.io/crates/v/mqttc.svg)]
 
 ## Binaries
 
