@@ -1,6 +1,6 @@
 [package]
 name = "rustmq"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Maksim V. <inre.storm@gmail.com>"]
 description = "RustMQ is the MQTT broker written on pure Rust."
 license = "MIT"
@@ -26,6 +26,6 @@ getopts = "0.2"
 openssl = { version = "0.7", features = ["tlsv1_1", "tlsv1_2"] }
 log = "0.3"
 env_logger = "0.3"
-"mqtt3" = { path = "mqtt3" }
-"netopt" = { path = "netopt" }
-"mqttc" = { path = "mqttc" }
+"mqtt3" = "0.1" # { path = "mqtt3" }
+"netopt" = "0.1" # { path = "netopt" }
+"mqttc" = "0.1" # { path = "mqttc" }
