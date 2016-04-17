@@ -1,11 +1,24 @@
 # RustMQ
 
+This repository is the bundle of crates devoted to the MQTT protocol.
+
+## Crates
+
+* mqtt3 - MQTT protocol reader/writer
+* netopt - TCP/SSL connection
+* mqttc - Rust MQTT client
+
+## Binaries
+
+* mqttc - Console MQTT client
+
 # Client
 
-## Features
+The client has some dignity:
 
 * QoS 0, QoS 1, QoS 2 publish/subscribe
 * Last Will message
+* Auto-Ping
 * Auto-Reconnect
 * SSL supported (include TLS v1.1, TLS v1.2)
 * Modular: mqtt3, netopt
@@ -43,12 +56,23 @@ loop {
 
 ## Command line interface
 
+MQTT Client installation:
+
 ```bash
 git clone https://github.com/inre/rust-mq.git
 cd rust-mq
-make
-make install
+make && make install
+```
+
+Subscribe to all topics:
+
+```bash
 mqttc sub
+```
+
+Publish to the topic:
+
+```bash
 mqttc pub -t a/b/c -m "hello"
 ```
 
