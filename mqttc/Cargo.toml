@@ -1,6 +1,6 @@
 [package]
 name = "mqttc"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Maksim V. <inre.storm@gmail.com>"]
 description = "Mqttc is a client for the MQTT protocol."
 repository = "https://github.com/inre/rust-mq"
@@ -10,8 +10,8 @@ license = "MIT"
 log = "0.3"
 rand = "0.3"
 byteorder = "0.4"
-mqtt3 = "0.1"
-netopt = "0.1"
+mqtt3 = "0.1" # { path = "../mqtt3" }
+netopt = "0.1" # { path = "../netopt" }
 
 [dev-dependencies]
 env_logger = "0.3"

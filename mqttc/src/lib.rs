@@ -1,4 +1,3 @@
-#![feature(time2)]
 #[macro_use] extern crate log;
 extern crate rand;
 extern crate byteorder;
@@ -28,7 +27,7 @@ pub use client::{
 use std::sync::Arc;
 use std::ops;
 use std::time::Duration;
-use mqtt3::{QoS, ToTopicPath, Message, PacketIdentifier};
+use mqtt3::{QoS, ToTopicPath};
 
 const MAX_QOS: QoS = mqtt3::QoS::AtLeastOnce;
 

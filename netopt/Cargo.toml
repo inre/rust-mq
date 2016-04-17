@@ -1,6 +1,6 @@
 [package]
 name = "netopt"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Maksim V. <inre.storm@gmail.com>"]
 description = "Provides options to work with tcp or ssl streams and has a choice in between."
 repository = "https://github.com/inre/rust-mq"
@@ -11,5 +11,5 @@ default = ["ssl"]
 ssl = ["openssl"]
 
 [dependencies]
-openssl = { version = "0.7", optional = true }
-mqtt3 = "0.1"
+openssl = { version = "0.7", optional = true, features = ["tlsv1_1", "tlsv1_2"] }
+mqtt3 = "0.1.1" # { path = "../mqtt3" }

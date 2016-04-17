@@ -445,7 +445,7 @@ impl Client {
                         }
                     },
                     Packet::Pubcomp(pid) => {
-                        if let Some(pid) = self.outgoing_comp.pop_front() {
+                        if let Some(_) = self.outgoing_comp.pop_front() {
                             Ok(None)
                         } else {
                             Err(Error::UnhandledPubcomp(pid))

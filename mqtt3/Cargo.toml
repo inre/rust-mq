@@ -1,6 +1,6 @@
 [package]
 name = "mqtt3"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Maksim V. <inre.storm@gmail.com>"]
 description = "Mqtt3 is a crate to read/write MQTT-packet from/to a stream."
 repository = "https://github.com/inre/rust-mq"
