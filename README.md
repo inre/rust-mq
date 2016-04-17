@@ -56,6 +56,8 @@ loop {
 
 ## Command line interface
 
+![mqtt-cli](https://cloud.githubusercontent.com/assets/9905/14590517/0aeac094-0505-11e6-9334-eab7067e1842.png)
+
 MQTT Client installation:
 
 ```bash
