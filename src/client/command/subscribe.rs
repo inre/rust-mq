@@ -2,10 +2,12 @@ use std::io::prelude::*;
 use term;
 use openssl::ssl;
 use std::time::Duration;
-use mqtt3::{LastWill, SubscribeTopic, QoS, Protocol};
+use std::process::exit;
+use mqtt3::{LastWill, SubscribeTopic, QoS, Protocol, PacketIdentifier};
 use netopt::{NetworkOptions, SslContext};
-use mqttc::{Mqttc, ClientOptions, ReconnectMethod};
-use super::Command;
+use mqttc::store;
+use mqttc::{Mqttc, ClientOptions, ReconnectMethod, Error};
+use super::{Command, LocalStorage};
 use client::logger::set_stdout_logger;
 
 #[derive(Debug, Clone)]
@@ -38,13 +40,13 @@ pub struct SubscribeCommand {
     pub topic_filters: Vec<String>,
 
     // SSL/TLS option
-    pub ssl_context: Option<ssl::SslContext>
+    pub ssl_context: Option<ssl::SslContext>,
 }
 
 impl Default for SubscribeCommand {
     fn default() -> SubscribeCommand {
         SubscribeCommand {
-            topics: vec![SubscribeTopic { topic_path: "#".to_string(), qos: QoS::AtLeastOnce }],
+            topics: vec![SubscribeTopic { topic_path: "#".to_string(), qos: QoS::ExactlyOnce }],
             address: "localhost".to_string(),
             port: 1883,
             clean_session: true,
@@ -86,6 +88,7 @@ impl Command for SubscribeCommand {
         opts.set_keep_alive(self.keep_alive);
         opts.set_clean_session(self.clean_session);
         opts.set_last_will_opt(self.last_will.clone());
+        opts.set_incomming_store(LocalStorage::new());
 
         if self.reconnect {
             opts.set_reconnect(ReconnectMethod::ReconnectAfter(Duration::from_secs(1)));
@@ -123,23 +126,52 @@ impl Command for SubscribeCommand {
         client.subscribe(self.topics.clone()).unwrap();
 
         loop {
-            match client.await().unwrap() {
-                Some(message) => {
-                    let payload = String::from_utf8((*message.payload).clone()).unwrap();
-                    let color = match message.qos {
-                        QoS::AtMostOnce => term::color::BRIGHT_CYAN,
-                        QoS::AtLeastOnce => term::color::BRIGHT_MAGENTA,
-                        QoS::ExactlyOnce => term::color::BRIGHT_BLUE
-                    };
-                    if !self.debug {
-                        print_message(message.topic.path, payload, color);
+            match client.await() {
+                Ok(some_message) => {
+                    match some_message {
+                        Some(message) => {
+                            let payload = String::from_utf8((*message.payload).clone()).unwrap();
+                            let color = match message.qos {
+                                QoS::AtMostOnce => term::color::BRIGHT_CYAN,
+                                QoS::AtLeastOnce => term::color::BRIGHT_MAGENTA,
+                                QoS::ExactlyOnce => {
+                                    client.complete(message.pid.unwrap());
+                                    term::color::BRIGHT_BLUE
+                                }
+                            };
+                            if !self.debug {
+                                print_message(message.topic.path, payload, color);
+                            }
+                        },
+                        None => {
+                            //println!(".");
+                        }
                     }
                 },
-                None => {
-                    //println!(".");
+                Err(e) => {
+                    match e {
+                        Error::UnhandledPuback(_) => { print_error("unhandled puback") },
+                        Error::UnhandledPubrec(_) => { print_error("unhandled pubrec") },
+                        Error::UnhandledPubrel(_) => { print_error("unhandled pubrel") },
+                        Error::UnhandledPubcomp(_) => { print_error("unhandled pubcomp") },
+                        Error::Storage(err) => match err {
+                            store::Error::NotFound(pid) => {
+                                // we have lost something
+                                let _ = client.complete(pid);
+                            },
+                            store::Error::Unavailable(_) => {
+                                // do nothing, just wait next pubrel
+                            }
+                        },
+                        e => {
+                            print_error(format!("{:?}", e));
+                            exit(64);
+                        }
+                    }
                 }
             }
         }
+
     }
 }
 
@@ -181,4 +213,8 @@ fn print_message<T: AsRef<str>, M: AsRef<str>>(title: T, message: M, color: u16)
     t.reset().unwrap();
     writeln!(t, "{}", message.as_ref()).unwrap();
     t.reset().unwrap();
+}
+
+fn print_error<M: AsRef<str>>(message: M) {
+    print_message("Error", message, term::color::BRIGHT_RED);
 }

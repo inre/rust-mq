@@ -7,7 +7,7 @@ use openssl::ssl;
 use mqtt3::{QoS, Protocol};
 use netopt::{NetworkOptions, SslContext};
 use mqttc::{Mqttc, ClientOptions, PubOpt};
-use super::Command;
+use super::{Command, LocalStorage};
 use client::logger::set_stdout_logger;
 
 #[derive(Debug, Clone)]
@@ -80,6 +80,7 @@ impl Command for PublishCommand {
         opts.set_protocol(self.protocol);
         opts.set_keep_alive(self.keep_alive);
         opts.set_clean_session(true);
+        opts.set_outgoing_store(LocalStorage::new());
 
         if let Some(ref username) = self.username {
             opts.set_username(username.clone());
@@ -110,6 +111,11 @@ impl Command for PublishCommand {
             client.publish(self.topic.clone(), payload, PubOpt::new(self.qos, self.retain)).expect("Can't publish the message");
         } else {
             client.publish(self.topic.clone(), "", PubOpt::new(self.qos, self.retain)).expect("Can't publish the message");
+        }
+
+        if self.qos != QoS::AtMostOnce {
+            // wait normalization
+            while (client.await().unwrap().is_some()) {};
         }
 
         exit(0);
