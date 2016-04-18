@@ -108,6 +108,7 @@ impl Command for PublishCommand {
             let mut payload = Vec::new();
             let mut f = OpenOptions::new().read(true).open(file).expect("Can't open file");
             f.read_to_end(&mut payload).expect("Can't read file");
+            println!("Sending file {} bytes...", payload.len());
             client.publish(self.topic.clone(), payload, PubOpt::new(self.qos, self.retain)).expect("Can't publish the message");
         } else {
             client.publish(self.topic.clone(), "", PubOpt::new(self.qos, self.retain)).expect("Can't publish the message");
@@ -115,7 +116,7 @@ impl Command for PublishCommand {
 
         if self.qos != QoS::AtMostOnce {
             // wait normalization
-            while (client.await().unwrap().is_some()) {};
+            while client.await().unwrap().is_some() {};
         }
 
         exit(0);

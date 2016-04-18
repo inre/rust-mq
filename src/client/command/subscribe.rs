@@ -3,7 +3,7 @@ use term;
 use openssl::ssl;
 use std::time::Duration;
 use std::process::exit;
-use mqtt3::{LastWill, SubscribeTopic, QoS, Protocol, PacketIdentifier};
+use mqtt3::{self, LastWill, SubscribeTopic, QoS, Protocol};
 use netopt::{NetworkOptions, SslContext};
 use mqttc::store;
 use mqttc::{Mqttc, ClientOptions, ReconnectMethod, Error};
@@ -116,7 +116,7 @@ impl Command for SubscribeCommand {
             print_message("Connecting to", format!("{}", address), term::color::BRIGHT_GREEN);
         };
 
-        let mut client = opts.connect(address.as_str(), netopt).unwrap();
+        let mut client = opts.connect(address.as_str(), netopt).expect("Can't connect to server");
 
         if !self.debug && !self.silence {
             print_topics(&self.topics);
@@ -129,19 +129,28 @@ impl Command for SubscribeCommand {
             match client.await() {
                 Ok(some_message) => {
                     match some_message {
-                        Some(message) => {
-                            let payload = String::from_utf8((*message.payload).clone()).unwrap();
-                            let color = match message.qos {
-                                QoS::AtMostOnce => term::color::BRIGHT_CYAN,
-                                QoS::AtLeastOnce => term::color::BRIGHT_MAGENTA,
-                                QoS::ExactlyOnce => {
-                                    client.complete(message.pid.unwrap());
-                                    term::color::BRIGHT_BLUE
-                                }
-                            };
+                        Some(ref message) => {
                             if !self.debug {
-                                print_message(message.topic.path, payload, color);
+                                let color = match message.qos {
+                                    QoS::AtMostOnce => term::color::BRIGHT_CYAN,
+                                    QoS::AtLeastOnce => term::color::BRIGHT_MAGENTA,
+                                    QoS::ExactlyOnce => term::color::BRIGHT_BLUE
+                                };
+
+                                let payload = match String::from_utf8((*message.payload).clone()) {
+                                    Ok(payload) => payload,
+                                    Err(_) => {
+                                        format!("payload did not contain valid UTF-8 ({} bytes)", message.payload.len())
+                                    }
+                                };
+
+                                print_message(&message.topic.path, payload, color);
                             }
+
+                            if message.qos == QoS::ExactlyOnce {
+                                let _ = client.complete(message.pid.unwrap());
+                            }
+
                         },
                         None => {
                             //println!(".");
@@ -154,17 +163,33 @@ impl Command for SubscribeCommand {
                         Error::UnhandledPubrec(_) => { print_error("unhandled pubrec") },
                         Error::UnhandledPubrel(_) => { print_error("unhandled pubrel") },
                         Error::UnhandledPubcomp(_) => { print_error("unhandled pubcomp") },
-                        Error::Storage(err) => match err {
-                            store::Error::NotFound(pid) => {
+                        Error::Mqtt(ref err) => match err {
+                            &mqtt3::Error::TopicNameMustNotContainNonUtf8 => {
+                                print_error("topic name contains non-UTF-8 characters")
+                            },
+                            &mqtt3::Error::TopicNameMustNotContainWildcard => {
+                                print_error("topic name contains wildcard")
+                            },
+                            _ => {
+                                print_error(format!("{:?}", e));
+                                exit(64);
+                            }
+                        },
+                        Error::Storage(ref err) => match err {
+                            &store::Error::NotFound(pid) => {
                                 // we have lost something
                                 let _ = client.complete(pid);
                             },
-                            store::Error::Unavailable(_) => {
+                            &store::Error::Unavailable(_) => {
                                 // do nothing, just wait next pubrel
                             }
                         },
+                        Error::Disconnected | Error::ConnectionAbort => {
+                            exit(64);
+                        },
                         e => {
                             print_error(format!("{:?}", e));
+                            client.terminate();
                             exit(64);
                         }
                     }
