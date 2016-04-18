@@ -144,7 +144,7 @@ pub trait MqttRead: ReadBytesExt {
     }
 
     fn read_publish(&mut self, header: Header) -> Result<Box<Publish>> {
-        let topic_name = try!(self.read_mqtt_string());
+        let topic_name = self.read_mqtt_string();
         // Packet identifier exists where QoS > 0
         let pid = if header.qos().unwrap() != QoS::AtMostOnce {
             Some(PacketIdentifier(try!(self.read_u16::<BigEndian>())))
@@ -159,7 +159,7 @@ pub trait MqttRead: ReadBytesExt {
                 dup: header.dup(),
                 qos: try!(header.qos()),
                 retain: header.retain(),
-                topic_name: topic_name,
+                topic_name: try!(topic_name),
                 pid: pid,
                 payload: Arc::new(payload)
             }
@@ -230,9 +230,9 @@ pub trait MqttRead: ReadBytesExt {
 
     fn read_mqtt_string(&mut self) -> Result<String> {
         let len = try!(self.read_u16::<BigEndian>()) as usize;
-        let mut string = String::with_capacity(len);
-        try!(self.take(len as u64).read_to_string(&mut string));
-        Ok(string)
+        let mut data = Vec::with_capacity(len);
+        try!(self.take(len as u64).read_to_end(&mut data));
+        Ok(try!(String::from_utf8(data)))
     }
 
     fn read_remaining_length(&mut self) -> Result<usize> {

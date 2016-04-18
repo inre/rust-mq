@@ -1,5 +1,6 @@
 use std::result;
 use std::io;
+use std::string::FromUtf8Error;
 use byteorder;
 
 pub type Result<T> = result::Result<T, Error>;
@@ -16,6 +17,7 @@ pub enum Error {
     PayloadSizeIncorrect,
     PayloadTooLong,
     PayloadRequired,
+    TopicNameMustNotContainNonUtf8,
     TopicNameMustNotContainWildcard,
     MalformedRemainingLength,
     UnexpectedEof,
@@ -25,6 +27,12 @@ pub enum Error {
 impl From<io::Error> for Error {
     fn from(err: io::Error) -> Error {
         Error::Io(err)
+    }
+}
+
+impl From<FromUtf8Error> for Error {
+    fn from(err: FromUtf8Error) -> Error {
+        Error::TopicNameMustNotContainNonUtf8
     }
 }
 

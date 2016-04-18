@@ -37,7 +37,7 @@ pub use topic::{
 pub use read::MqttRead;
 pub use write::MqttWrite;
 
-const MULTIPLIER: usize = 0x80 * 0x80 * 0x80;
+const MULTIPLIER: usize = 0x80 * 0x80 * 0x80 * 0x80;
 const MAX_PAYLOAD_SIZE: usize = 268435455;
 
 use std::fmt;
