@@ -31,7 +31,7 @@ impl From<io::Error> for Error {
 }
 
 impl From<FromUtf8Error> for Error {
-    fn from(err: FromUtf8Error) -> Error {
+    fn from(_: FromUtf8Error) -> Error {
         Error::TopicNameMustNotContainNonUtf8
     }
 }
