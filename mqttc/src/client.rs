@@ -124,6 +124,7 @@ impl ClientOptions {
             last_pid: PacketIdentifier::zero(),
             await_ping: false,
             incomming_pub: VecDeque::new(),
+            incomming_rec: VecDeque::new(),
             incomming_rel: VecDeque::new(),
             outgoing_ack: VecDeque::new(),
             outgoing_rec: VecDeque::new(),
@@ -178,7 +179,8 @@ pub struct Client {
     last_flush: Instant,
     last_pid: PacketIdentifier,
     await_ping: bool,
-    incomming_pub: VecDeque<Box<Message>>, // QoS > 0
+    incomming_pub: VecDeque<Box<Message>>, // QoS 1
+    incomming_rec: VecDeque<Box<Message>>, // QoS 2
     incomming_rel: VecDeque<PacketIdentifier>,    // QoS 2
     outgoing_ack: VecDeque<Box<Message>>,  // QoS 1
     outgoing_rec: VecDeque<Box<Message>>,  // QoS 2
@@ -259,12 +261,15 @@ impl Client {
                         match self._parse_packet(packet) {
                             Ok(message) => Ok(message),
                             Err(err) => {
-                                self._unbind();
-                                error!("{:?}", err);
-                                if self._try_reconnect() {
-                                    Ok(None)
-                                } else {
-                                    Err(err)
+                                match err {
+                                    Error::ConnectionAbort => {
+                                        self._unbind();
+                                        Err(Error::ConnectionAbort)
+                                    },
+                                    err => {
+                                        error!("{:?}", err);
+                                        Err(err)
+                                    }
                                 }
                             }
                         }
@@ -300,7 +305,6 @@ impl Client {
                         },
                         _ => {
                             error!("{:?}", err);
-                            self._unbind();
                             Err(Error::from(err))
                         }
                     }
@@ -351,6 +355,10 @@ impl Client {
         }
     }
 
+    pub fn terminate(&mut self) {
+        self._unbind();
+    }
+
     pub fn set_reconnect(&mut self, reconnect: ReconnectMethod) {
         self.opts.reconnect = reconnect;
     }
@@ -365,6 +373,7 @@ impl Client {
         (self.outgoing_ack.len() == 0) &&
         (self.outgoing_rec.len() == 0) &&
         (self.incomming_pub.len() == 0) &&
+        (self.incomming_rec.len() == 0) &&
         (self.incomming_rel.len() == 0) &&
         (self.await_suback.len() == 0) &&
         (self.await_unsuback.len() == 0)
@@ -428,7 +437,7 @@ impl Client {
                         }
                     },
                     Packet::Pubrel(pid) => {
-                        if let Some(message) = self.incomming_pub.pop_front() {
+                        if let Some(message) = self.incomming_rec.pop_front() {
                             if message.pid == Some(pid) {
                                 let message = if let Some(ref mut store) = self.opts.incomming_store {
                                     try!(store.get(pid))
@@ -525,7 +534,7 @@ impl Client {
                 Ok(Some(message))
             },
             QoS::ExactlyOnce => {
-                self.incomming_pub.push_back(message.clone());
+                self.incomming_rec.push_back(message.clone());
                 let pid = message.pid.unwrap();
 
                 if let Some(ref mut store) = self.opts.incomming_store {
