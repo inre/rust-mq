@@ -72,6 +72,15 @@ Subscribe to all topics:
 mqttc sub
 ```
 
+Or try,
+
+```bash
+mqttc sub -a test.mosquitto.org
+mqttc sub -a iot.eclipse.org
+mqttc sub -a test.mosca.io
+mqttc sub -a broker.hivemq.com
+```
+
 Publish to the topic:
 
 ```bash
