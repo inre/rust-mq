@@ -344,11 +344,11 @@ impl CLI {
 
         let retain = false; //TODO: !matches.opt_present("no-retain");
 
-        let qos = matches.opt_str("q").map(|s| self.parse_qos(s)).unwrap_or(QoS::AtLeastOnce);
+        let qos = matches.opt_str("q").map(|s| self.parse_qos(s)).unwrap_or(QoS::ExactlyOnce);
         let topics = if !matches.free.is_empty() {
             matches.free.iter().map(|topic| SubscribeTopic { topic_path: topic.clone(), qos: qos} ).collect()
         } else {
-            default.topics
+            default.topics.iter().map(|topic| SubscribeTopic { topic_path: topic.topic_path.clone(), qos: qos} ).collect()
         };
 
         SubscribeCommand {
