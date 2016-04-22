@@ -14,7 +14,7 @@ This repository is the bundle of crates devoted to the MQTT protocol.
 
 # Client
 
-The client has some dignity:
+The client has the following functionality:
 
 * QoS 0, QoS 1, QoS 2 publish/subscribe
 * Last Will message
