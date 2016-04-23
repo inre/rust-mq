@@ -86,7 +86,7 @@ impl CLI {
             self.cli_error("Shouldn't set both message and file together");
         };
 
-        let qos = matches.opt_str("q").map(|s| self.parse_qos(s)).unwrap_or(QoS::AtLeastOnce);
+        let qos = matches.opt_str("q").map_or(QoS::AtLeastOnce, |s| self.parse_qos(s));
         let retain = matches.opt_present("r");
 
         let address = matches.opt_str("a").unwrap_or(default.address);
@@ -297,7 +297,7 @@ impl CLI {
             Some(LastWill {
                 topic: will_topic.unwrap(),
                 message: will_message.unwrap(),
-                qos: will_qos.map(|s| self.parse_qos(s)).unwrap_or(QoS::AtMostOnce),
+                qos: will_qos.map_or(QoS::AtMostOnce, |s| self.parse_qos(s)),
                 retain: will_retain
             })
         } else {
@@ -344,7 +344,7 @@ impl CLI {
 
         let retain = false; //TODO: !matches.opt_present("no-retain");
 
-        let qos = matches.opt_str("q").map(|s| self.parse_qos(s)).unwrap_or(QoS::ExactlyOnce);
+        let qos = matches.opt_str("q").map_or(QoS::ExactlyOnce, |s| self.parse_qos(s));
         let topics = if !matches.free.is_empty() {
             matches.free.iter().map(|topic| SubscribeTopic { topic_path: topic.clone(), qos: qos} ).collect()
         } else {
@@ -376,9 +376,9 @@ impl CLI {
     fn print_usage(&self) {
         let mut brief = "mqttc is a simple MQTT client that provides to publish message or subscribe to topics.\n\n".to_string();
         brief = brief + format!("Usage:\n    {} command\n    {} --help\n\n", self.program, self.program).as_str();
-        brief = brief + format!("Commands:\n").as_str();
-        brief = brief + format!("    publish/pub \tPublish message to a topic\n").as_str();
-        brief = brief + format!("    subscribe/sub \tSubscribe to topics\n\n").as_str();
+        brief = brief +         "Commands:\n";
+        brief = brief +         "    publish/pub \tPublish message to a topic\n";
+        brief = brief +         "    subscribe/sub \tSubscribe to topics\n\n";
         print!("{}", brief);
     }
 
