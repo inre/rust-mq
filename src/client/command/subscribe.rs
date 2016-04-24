@@ -113,7 +113,7 @@ impl Command for SubscribeCommand {
         let address = format!("{}:{}", self.address, self.port);
 
         if !self.debug && !self.silence {
-            print_message("Connecting to", format!("{}", address), term::color::BRIGHT_GREEN);
+            print_message("Connecting to", address.as_str(), term::color::BRIGHT_GREEN);
         };
 
         let mut client = opts.connect(address.as_str(), netopt).expect("Can't connect to server");
@@ -128,33 +128,28 @@ impl Command for SubscribeCommand {
         loop {
             match client.await() {
                 Ok(some_message) => {
-                    match some_message {
-                        Some(ref message) => {
-                            if !self.debug {
-                                let color = match message.qos {
-                                    QoS::AtMostOnce => term::color::BRIGHT_CYAN,
-                                    QoS::AtLeastOnce => term::color::BRIGHT_MAGENTA,
-                                    QoS::ExactlyOnce => term::color::BRIGHT_BLUE
-                                };
+                    if let Some(ref message) = some_message {
+                        if !self.debug {
+                            let color = match message.qos {
+                                QoS::AtMostOnce => term::color::BRIGHT_CYAN,
+                                QoS::AtLeastOnce => term::color::BRIGHT_MAGENTA,
+                                QoS::ExactlyOnce => term::color::BRIGHT_BLUE
+                            };
 
-                                let payload = match String::from_utf8((*message.payload).clone()) {
-                                    Ok(payload) => payload,
-                                    Err(_) => {
-                                        format!("payload did not contain valid UTF-8 ({} bytes)", message.payload.len())
-                                    }
-                                };
+                            let payload = match String::from_utf8((*message.payload).clone()) {
+                                Ok(payload) => payload,
+                                Err(_) => {
+                                    format!("payload did not contain valid UTF-8 ({} bytes)", message.payload.len())
+                                }
+                            };
 
-                                print_message(&message.topic.path, payload, color);
-                            }
-
-                            if message.qos == QoS::ExactlyOnce {
-                                let _ = client.complete(message.pid.unwrap());
-                            }
-
-                        },
-                        None => {
-                            //println!(".");
+                            print_message(&message.topic.path, payload, color);
                         }
+
+                        if message.qos == QoS::ExactlyOnce {
+                            let _ = client.complete(message.pid.unwrap());
+                        }
+
                     }
                 },
                 Err(e) => {
@@ -163,11 +158,11 @@ impl Command for SubscribeCommand {
                         Error::UnhandledPubrec(_) => { print_error("unhandled pubrec") },
                         Error::UnhandledPubrel(_) => { print_error("unhandled pubrel") },
                         Error::UnhandledPubcomp(_) => { print_error("unhandled pubcomp") },
-                        Error::Mqtt(ref err) => match err {
-                            &mqtt3::Error::TopicNameMustNotContainNonUtf8 => {
+                        Error::Mqtt(ref err) => match *err {
+                            mqtt3::Error::TopicNameMustNotContainNonUtf8 => {
                                 print_error("topic name contains non-UTF-8 characters")
                             },
-                            &mqtt3::Error::TopicNameMustNotContainWildcard => {
+                            mqtt3::Error::TopicNameMustNotContainWildcard => {
                                 print_error("topic name contains wildcard")
                             },
                             _ => {
@@ -175,12 +170,12 @@ impl Command for SubscribeCommand {
                                 exit(64);
                             }
                         },
-                        Error::Storage(ref err) => match err {
-                            &store::Error::NotFound(pid) => {
+                        Error::Storage(ref err) => match *err {
+                            store::Error::NotFound(pid) => {
                                 // we have lost something
                                 let _ = client.complete(pid);
                             },
-                            &store::Error::Unavailable(_) => {
+                            store::Error::Unavailable(_) => {
                                 // do nothing, just wait next pubrel
                             }
                         },
@@ -215,7 +210,7 @@ fn print_legend() {
     //t.reset().unwrap();
 }
 
-fn print_topics(topics: &Vec<SubscribeTopic>) {
+fn print_topics(topics: &[SubscribeTopic]) {
     let mut t = term::stdout().unwrap();
     t.fg(term::color::BRIGHT_GREEN).unwrap();
     write!(t, "     Subscribe ").unwrap();
