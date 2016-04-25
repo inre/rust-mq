@@ -1,9 +1,8 @@
-#![feature(convert)]
 extern crate mqtt3;
 
 use std::env;
 use std::net::TcpStream;
-use std::io::{self, Read, Write, BufReader, BufWriter};
+use std::io::{Read, Write, BufReader, BufWriter};
 use std::process::exit;
 use mqtt3::{MqttRead, MqttWrite, Packet, Connect, Publish, Subscribe, Protocol, QoS, PacketIdentifier};
 use std::sync::Arc;
@@ -21,7 +20,7 @@ fn main() {
     let mut writer = BufWriter::new(stream.try_clone().unwrap());
 
     // CONNECT -> CONNACK
-    let connect = Packet::Connect(Arc::new(Connect {
+    let connect = Packet::Connect(Box::new(Connect {
         protocol: Protocol::MQTT(4),
         keep_alive: 30,
         client_id: "rust-mq-example-sub".to_owned(),
@@ -37,10 +36,10 @@ fn main() {
     println!("{:?}", packet);
 
     // SUBSCRIBE
-    let subscribe = Packet::Subscribe(Arc::new(Subscribe {
+    let subscribe = Packet::Subscribe(Box::new(Subscribe {
         pid: PacketIdentifier(260),
         topics: vec![
-            ("/a/b".to_owned(), QoS::ExactlyOnce)
+            mqtt3::SubscribeTopic { topic_path: "/a/b".to_owned(), qos: QoS::ExactlyOnce }
         ]
     }));
     println!("{:?}", subscribe);
