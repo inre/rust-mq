@@ -1,5 +1,7 @@
 # RustMQ
 
+[![Build Status](https://travis-ci.org/inre/rust-mq.svg?branch=master)](https://travis-ci.org/inre/rust-mq)
+
 This repository is the bundle of crates devoted to the MQTT protocol.
 
 ## Crates
