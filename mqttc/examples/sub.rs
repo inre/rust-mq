@@ -22,7 +22,7 @@ fn main() {
     let netopt = NetworkOptions::new();
     let mut opts = ClientOptions::new();
     opts.set_keep_alive(15);
-    //opts.set_reconnect(ReconnectMethod::ReconnectAfter(Duration::new(5,0)));
+    opts.set_reconnect(ReconnectMethod::ReconnectAfter(Duration::new(5,0)));
     let mut client = opts.connect(address.as_str(), netopt).unwrap();
 
     client.subscribe(topic.as_str()).unwrap();
@@ -32,11 +32,14 @@ fn main() {
     //client.publish(topic.as_str(), "Hello", PubOpt::at_least_once());
 
     loop {
-        match client.await().unwrap() {
-            Some(message) => println!("{:?}", message),
-            None => {
-                println!(".");
+        match client.await() {
+            Ok(result) => {
+                match result {
+                    Some(message) => println!("{:?}", message),
+                    None => println!("."),
+                }
             }
+            Err(_) => continue
         }
     }
 }

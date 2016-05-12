@@ -11,6 +11,12 @@ pub struct Subscription {
     pub qos: QoS
 }
 
+impl Subscription {
+    pub fn to_subscribe_topic(&self) -> SubscribeTopic {
+        SubscribeTopic { topic_path: self.topic_path.path(), qos: self.qos }
+    }
+}
+
 pub trait ToSubTopics {
     type Iter: Iterator<Item=SubscribeTopic>;
     fn to_subscribe_topics(&self) -> Result<Self::Iter>;

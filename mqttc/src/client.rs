@@ -5,7 +5,7 @@ use std::time::{Duration, Instant};
 use std::thread;
 use netopt::{Connection, NetworkOptions, NetworkStream};
 use rand::{self, Rng};
-use mqtt3::{MqttRead, MqttWrite, Message, QoS, SubscribeReturnCodes};
+use mqtt3::{MqttRead, MqttWrite, Message, QoS, SubscribeReturnCodes, SubscribeTopic};
 use mqtt3::{self, Protocol, Packet, ConnectReturnCode, PacketIdentifier, LastWill, ToTopicPath};
 use error::{Error, Result};
 use sub::Subscription;
@@ -328,6 +328,9 @@ impl Client {
         let (conn, _) = try!(self.opts._reconnect(self.addr, &self.netopt));
         self.conn = conn;
         try!(self._handshake());
+
+        self._resubscribe();
+
         Ok(())
     }
 
@@ -634,6 +637,11 @@ impl Client {
         self.await_unsuback.push_back(unsubscribe.clone());
         self._write_packet(&Packet::Unsubscribe(unsubscribe));
         Ok(())
+    }
+
+    fn _resubscribe(&mut self) {
+        let subs: Vec<SubscribeTopic> = self.subscriptions.values().map(|sub| { sub.to_subscribe_topic() }).collect();
+        let _ = self._subscribe(subs);
     }
 
     fn _disconnect(&mut self) {
