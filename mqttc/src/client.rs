@@ -12,7 +12,7 @@ use sub::Subscription;
 use {Mqttc, ClientState, ReconnectMethod, PubOpt, ToPayload, ToSubTopics, ToUnSubTopics};
 use store::Store;
 
-//#[derive(Clone)]
+// #[derive(Clone)]
 pub struct ClientOptions {
     protocol: Protocol,
     keep_alive: Option<Duration>,
@@ -23,8 +23,8 @@ pub struct ClientOptions {
     password: Option<String>,
     reconnect: ReconnectMethod,
 
-    incomming_store: Option<Box<Store>>,
-    outgoing_store: Option<Box<Store>>
+    incomming_store: Option<Box<Store + Send>>,
+    outgoing_store: Option<Box<Store + Send>>,
 }
 
 impl ClientOptions {
@@ -39,32 +39,38 @@ impl ClientOptions {
             password: None,
             reconnect: ReconnectMethod::ForeverDisconnect,
             incomming_store: None,
-            outgoing_store: None
+            outgoing_store: None,
         }
     }
 
     pub fn set_keep_alive(&mut self, secs: u16) -> &mut ClientOptions {
-        self.keep_alive = Some(Duration::new(secs as u64, 0)); self
+        self.keep_alive = Some(Duration::new(secs as u64, 0));
+        self
     }
 
     pub fn set_protocol(&mut self, protocol: Protocol) -> &mut ClientOptions {
-        self.protocol = protocol; self
+        self.protocol = protocol;
+        self
     }
 
     pub fn set_client_id(&mut self, client_id: String) -> &mut ClientOptions {
-        self.client_id = Some(client_id); self
+        self.client_id = Some(client_id);
+        self
     }
 
     pub fn set_clean_session(&mut self, clean_session: bool) -> &mut ClientOptions {
-        self.clean_session = clean_session; self
+        self.clean_session = clean_session;
+        self
     }
 
-    pub fn set_incomming_store(&mut self, store: Box<Store>) -> &mut ClientOptions {
-        self.incomming_store = Some(store); self
+    pub fn set_incomming_store(&mut self, store: Box<Store + Send>) -> &mut ClientOptions {
+        self.incomming_store = Some(store);
+        self
     }
 
-    pub fn set_outgoing_store(&mut self, store: Box<Store>) -> &mut ClientOptions {
-        self.outgoing_store = Some(store); self
+    pub fn set_outgoing_store(&mut self, store: Box<Store + Send>) -> &mut ClientOptions {
+        self.outgoing_store = Some(store);
+        self
     }
 
     pub fn generate_client_id(&mut self) -> &mut ClientOptions {
@@ -75,30 +81,38 @@ impl ClientOptions {
     }
 
     pub fn set_username(&mut self, username: String) -> &mut ClientOptions {
-        self.username = Some(username); self
+        self.username = Some(username);
+        self
     }
 
     pub fn set_password(&mut self, password: String) -> &mut ClientOptions {
-        self.password = Some(password); self
+        self.password = Some(password);
+        self
     }
 
-    pub fn set_last_will<T: ToTopicPath, P: ToPayload>(&mut self, topic: T, message: String, pub_opt: PubOpt) -> Result<()> {
+    pub fn set_last_will<T: ToTopicPath, P: ToPayload>(&mut self,
+                                                       topic: T,
+                                                       message: String,
+                                                       pub_opt: PubOpt)
+                                                       -> Result<()> {
         let topic_name = try!(topic.to_topic_name());
         self.last_will = Some(LastWill {
             topic: try!(topic_name.to_topic_name()).path(),
             message: message,
             qos: pub_opt.qos(),
-            retain: pub_opt.is_retain()
+            retain: pub_opt.is_retain(),
         });
         Ok(())
     }
 
     pub fn set_last_will_opt(&mut self, last_will: Option<LastWill>) -> &mut ClientOptions {
-        self.last_will = last_will; self
+        self.last_will = last_will;
+        self
     }
 
     pub fn set_reconnect(&mut self, reconnect: ReconnectMethod) -> &mut ClientOptions {
-        self.reconnect = reconnect; self
+        self.reconnect = reconnect;
+        self
     }
 
     pub fn connect<A: ToSocketAddrs>(mut self, addr: A, netopt: NetworkOptions) -> Result<Client> {
@@ -131,8 +145,7 @@ impl ClientOptions {
             outgoing_comp: VecDeque::new(),
             await_suback: VecDeque::new(),
             await_unsuback: VecDeque::new(),
-            subscriptions: HashMap::new()
-            // Subscriptions
+            subscriptions: HashMap::new(), // Subscriptions
         };
 
         // Send CONNECT then wait CONNACK
@@ -141,7 +154,10 @@ impl ClientOptions {
         Ok(client)
     }
 
-    fn _reconnect(&self, addr: SocketAddr, netopt: &NetworkOptions) -> Result<(Connection, NetworkStream)> {
+    fn _reconnect(&self,
+                  addr: SocketAddr,
+                  netopt: &NetworkOptions)
+                  -> Result<(Connection, NetworkStream)> {
         let stream = try!(netopt.connect(addr));
         stream.set_read_timeout(self.keep_alive).unwrap();
         stream.set_write_timeout(self.keep_alive).unwrap();
@@ -162,7 +178,7 @@ impl ClientOptions {
             clean_session: self.clean_session,
             last_will: self.last_will.clone(),
             username: self.username.clone(),
-            password: self.password.clone()
+            password: self.password.clone(),
         })
     }
 }
@@ -181,19 +197,21 @@ pub struct Client {
     await_ping: bool,
     incomming_pub: VecDeque<Box<Message>>, // QoS 1
     incomming_rec: VecDeque<Box<Message>>, // QoS 2
-    incomming_rel: VecDeque<PacketIdentifier>,    // QoS 2
-    outgoing_ack: VecDeque<Box<Message>>,  // QoS 1
-    outgoing_rec: VecDeque<Box<Message>>,  // QoS 2
+    incomming_rel: VecDeque<PacketIdentifier>, // QoS 2
+    outgoing_ack: VecDeque<Box<Message>>, // QoS 1
+    outgoing_rec: VecDeque<Box<Message>>, // QoS 2
     outgoing_comp: VecDeque<PacketIdentifier>, // QoS 2
     await_suback: VecDeque<Box<mqtt3::Subscribe>>,
     await_unsuback: VecDeque<Box<mqtt3::Unsubscribe>>,
     // Subscriptions
-    subscriptions: HashMap<String, Subscription>
+    subscriptions: HashMap<String, Subscription>,
 }
 
 impl Mqttc for Client {
     fn publish<T, P>(&mut self, topic: T, payload: P, pubopt: PubOpt) -> Result<()>
-            where T : ToTopicPath, P: ToPayload {
+        where T: ToTopicPath,
+              P: ToPayload
+    {
         try!(self._publish(topic, payload, pubopt));
         self._flush()
     }
@@ -209,7 +227,7 @@ impl Mqttc for Client {
     }
 
     fn disconnect(mut self) -> Result<()> {
-        //self._disconnect();
+        // self._disconnect();
         self._flush()
     }
 }
@@ -220,22 +238,24 @@ impl Client {
             match self.accept() {
                 Ok(message) => {
                     if let Some(m) = message {
-                        return Ok(Some(m))
+                        return Ok(Some(m));
                     }
-                },
-                Err(e) => match e {
-                    Error::Timeout => {
-                        if self.state == ClientState::Connected {
-                            if !self.await_ping {
-                                let _ = self.ping();
+                }
+                Err(e) => {
+                    match e {
+                        Error::Timeout => {
+                            if self.state == ClientState::Connected {
+                                if !self.await_ping {
+                                    let _ = self.ping();
+                                } else {
+                                    self._unbind();
+                                }
                             } else {
-                                self._unbind();
+                                return Err(Error::Timeout);
                             }
-                        } else {
-                            return Err(Error::Timeout)
                         }
-                    },
-                    _ => return Err(e)
+                        _ => return Err(e),
+                    }
                 }
             }
             if self._normalized() {
@@ -265,7 +285,7 @@ impl Client {
                                     Error::ConnectionAbort => {
                                         self._unbind();
                                         Err(Error::ConnectionAbort)
-                                    },
+                                    }
                                     err => {
                                         error!("{:?}", err);
                                         Err(err)
@@ -273,43 +293,49 @@ impl Client {
                                 }
                             }
                         }
-                    },
-                    Err(err) => match err {
-                        mqtt3::Error::UnexpectedEof => {
-                            error!("{:?}", err);
-                            if self._try_reconnect() {
-                                Ok(None)
-                            } else {
-                                Err(Error::Disconnected)
-                            }
-                        },
-                        mqtt3::Error::Io(e) => match e.kind() {
-                            ErrorKind::WouldBlock | ErrorKind::TimedOut => {
-                                Err(Error::Timeout)
-                            },
-                            ErrorKind::UnexpectedEof | ErrorKind::ConnectionRefused |
-                            ErrorKind::ConnectionReset | ErrorKind::ConnectionAborted => {
-                                error!("{:?}", e);
-                                self._unbind();
+                    }
+                    Err(err) => {
+                        match err {
+                            mqtt3::Error::UnexpectedEof => {
+                                error!("{:?}", err);
                                 if self._try_reconnect() {
                                     Ok(None)
                                 } else {
                                     Err(Error::Disconnected)
                                 }
-                            },
-                            _ => {
-                                error!("{:?}", e);
-                                self._unbind();
-                                Err(Error::from(e))
                             }
-                        },
-                        _ => {
-                            error!("{:?}", err);
-                            Err(Error::from(err))
+                            mqtt3::Error::Io(e) => {
+                                match e.kind() {
+                                    ErrorKind::WouldBlock | ErrorKind::TimedOut => {
+                                        Err(Error::Timeout)
+                                    }
+                                    ErrorKind::UnexpectedEof |
+                                    ErrorKind::ConnectionRefused |
+                                    ErrorKind::ConnectionReset |
+                                    ErrorKind::ConnectionAborted => {
+                                        error!("{:?}", e);
+                                        self._unbind();
+                                        if self._try_reconnect() {
+                                            Ok(None)
+                                        } else {
+                                            Err(Error::Disconnected)
+                                        }
+                                    }
+                                    _ => {
+                                        error!("{:?}", e);
+                                        self._unbind();
+                                        Err(Error::from(e))
+                                    }
+                                }
+                            }
+                            _ => {
+                                error!("{:?}", err);
+                                Err(Error::from(err))
+                            }
                         }
                     }
                 }
-            },
+            }
             ClientState::Disconnected => {
                 if self._try_reconnect() {
                     Ok(None)
@@ -371,14 +397,10 @@ impl Client {
     }
 
     fn _normalized(&self) -> bool {
-        (self.state == ClientState::Connected) &&
-        (!self.await_ping) &&
-        (self.outgoing_ack.len() == 0) &&
-        (self.outgoing_rec.len() == 0) &&
-        (self.incomming_pub.len() == 0) &&
-        (self.incomming_rec.len() == 0) &&
-        (self.incomming_rel.len() == 0) &&
-        (self.await_suback.len() == 0) &&
+        (self.state == ClientState::Connected) && (!self.await_ping) &&
+        (self.outgoing_ack.len() == 0) && (self.outgoing_rec.len() == 0) &&
+        (self.incomming_pub.len() == 0) && (self.incomming_rec.len() == 0) &&
+        (self.incomming_rel.len() == 0) && (self.await_suback.len() == 0) &&
         (self.await_unsuback.len() == 0)
     }
 
@@ -396,17 +418,17 @@ impl Client {
                         } else {
                             Err(Error::ConnectionRefused(connack.code))
                         }
-                    },
-                    _ => Err(Error::HandshakeFailed)
+                    }
+                    _ => Err(Error::HandshakeFailed),
                 }
-            },
+            }
             ClientState::Connected => {
                 match packet {
                     Packet::Connack(_) => Err(Error::AlreadyConnected),
                     Packet::Publish(ref publish) => {
                         let message = try!(Message::from_pub(publish.clone()));
                         self._handle_message(message)
-                    },
+                    }
                     Packet::Puback(pid) => {
                         if let Some(message) = self.outgoing_ack.pop_front() {
                             if message.pid == Some(pid) {
@@ -417,7 +439,7 @@ impl Client {
                         } else {
                             Err(Error::UnhandledPuback(pid))
                         }
-                    },
+                    }
                     Packet::Pubrec(pid) => {
                         if let Some(message) = self.outgoing_rec.pop_front() {
                             if message.pid == Some(pid) {
@@ -438,11 +460,12 @@ impl Client {
                         } else {
                             Err(Error::UnhandledPubrec(pid))
                         }
-                    },
+                    }
                     Packet::Pubrel(pid) => {
                         if let Some(message) = self.incomming_rec.pop_front() {
                             if message.pid == Some(pid) {
-                                let message = if let Some(ref mut store) = self.opts.incomming_store {
+                                let message = if let Some(ref mut store) = self.opts
+                                                                               .incomming_store {
                                     try!(store.get(pid))
                                 } else {
                                     return Err(Error::IncommingStorageAbsent);
@@ -455,14 +478,14 @@ impl Client {
                         } else {
                             Err(Error::UnhandledPubrel(pid))
                         }
-                    },
+                    }
                     Packet::Pubcomp(pid) => {
                         if let Some(_) = self.outgoing_comp.pop_front() {
                             Ok(None)
                         } else {
                             Err(Error::UnhandledPubcomp(pid))
                         }
-                    },
+                    }
                     Packet::Suback(ref suback) => {
                         if let Some(subscribe) = self.await_suback.pop_front() {
                             if subscribe.pid == suback.pid {
@@ -473,11 +496,13 @@ impl Client {
                                             SubscribeReturnCodes::Success(qos) => {
                                                 let sub = Subscription {
                                                     pid: subscribe.pid,
-                                                    topic_path: try!(sub_topic.topic_path.to_topic_path()),
-                                                    qos: qos
+                                                    topic_path: try!(sub_topic.topic_path
+                                                                              .to_topic_path()),
+                                                    qos: qos,
                                                 };
-                                                self.subscriptions.insert(sub_topic.topic_path.clone(), sub);
-                                            },
+                                                self.subscriptions
+                                                    .insert(sub_topic.topic_path.clone(), sub);
+                                            }
                                             SubscribeReturnCodes::Failure => {
                                                 // ignore subscription
                                             }
@@ -493,7 +518,7 @@ impl Client {
                         } else {
                             Err(Error::ProtocolViolation)
                         }
-                    },
+                    }
                     Packet::Unsuback(pid) => {
                         if let Some(unsubscribe) = self.await_unsuback.pop_front() {
                             if unsubscribe.pid == pid {
@@ -507,35 +532,36 @@ impl Client {
                         } else {
                             Err(Error::ProtocolViolation)
                         }
-                    },
+                    }
                     Packet::Pingresp => {
                         self.await_ping = false;
-                        Ok(None )
-                    },
-                    _ => Err(Error::UnrecognizedPacket)
+                        Ok(None)
+                    }
+                    _ => Err(Error::UnrecognizedPacket),
                 }
-            },
-            ClientState::Disconnected => Err(Error::ConnectionAbort)
+            }
+            ClientState::Disconnected => Err(Error::ConnectionAbort),
         }
     }
 
     fn _handle_message(&mut self, message: Box<Message>) -> Result<Option<Box<Message>>> {
-        debug!("       Publish {} {} < {} bytes", message.qos.to_u8(), message.topic.path(), message.payload.len());
+        debug!("       Publish {} {} < {} bytes",
+               message.qos.to_u8(),
+               message.topic.path(),
+               message.payload.len());
         match message.qos {
-            QoS::AtMostOnce => {
-                Ok(Some(message))
-            },
+            QoS::AtMostOnce => Ok(Some(message)),
             QoS::AtLeastOnce => {
                 self.incomming_pub.push_back(message.clone());
                 let pid = message.pid.unwrap();
-                //debug!("        Puback {}", pid.0);
+                // debug!("        Puback {}", pid.0);
                 self._write_packet(&Packet::Puback(pid));
                 try!(self._flush());
                 // FIXME: can be repeated
                 let _ = self.incomming_pub.pop_front();
 
                 Ok(Some(message))
-            },
+            }
             QoS::ExactlyOnce => {
                 self.incomming_rec.push_back(message.clone());
                 let pid = message.pid.unwrap();
@@ -577,19 +603,23 @@ impl Client {
 
     fn _connect(&mut self) -> Result<()> {
         let connect = self.opts._generate_connect_packet();
-            debug!("       Connect {}", connect.client_id);
+        debug!("       Connect {}", connect.client_id);
         let packet = Packet::Connect(connect);
         self._write_packet(&packet);
         self._flush()
     }
 
-    fn _publish<T: ToTopicPath, P: ToPayload>(&mut self, topic: T, payload: P, pubopt: PubOpt) -> Result<()> {
+    fn _publish<T: ToTopicPath, P: ToPayload>(&mut self,
+                                              topic: T,
+                                              payload: P,
+                                              pubopt: PubOpt)
+                                              -> Result<()> {
         let mut message = Box::new(Message {
             topic: try!(topic.to_topic_name()),
             qos: pubopt.qos(),
             retain: pubopt.is_retain(),
             pid: None,
-            payload: payload.to_payload()
+            payload: payload.to_payload(),
         });
 
         match message.qos {
@@ -597,7 +627,7 @@ impl Client {
             QoS::AtLeastOnce => {
                 message.pid = Some(self._next_pid());
                 self.outgoing_ack.push_back(message.clone());
-            },
+            }
             QoS::ExactlyOnce => {
                 message.pid = Some(self._next_pid());
                 if let Some(ref mut store) = self.opts.outgoing_store {
@@ -609,7 +639,10 @@ impl Client {
             }
         }
 
-        debug!("       Publish {} {} > {} bytes", message.qos.to_u8(), message.topic.path(), message.payload.len());
+        debug!("       Publish {} {} > {} bytes",
+               message.qos.to_u8(),
+               message.topic.path(),
+               message.payload.len());
         let packet = Packet::Publish(message.to_pub(None, false));
         self._write_packet(&packet);
         Ok(())
@@ -619,7 +652,7 @@ impl Client {
         let iter = try!(subs.to_subscribe_topics());
         let subscribe = Box::new(mqtt3::Subscribe {
             pid: self._next_pid(),
-            topics: iter.collect()
+            topics: iter.collect(),
         });
         debug!("     Subscribe {:?}", subscribe.topics);
         self.await_suback.push_back(subscribe.clone());
@@ -631,7 +664,7 @@ impl Client {
         let iter = try!(unsubs.to_unsubscribe_topics());
         let unsubscribe = Box::new(mqtt3::Unsubscribe {
             pid: self._next_pid(),
-            topics: iter.collect()
+            topics: iter.collect(),
         });
         debug!("   Unsubscribe {:?}", unsubscribe.topics);
         self.await_unsuback.push_back(unsubscribe.clone());
@@ -640,7 +673,10 @@ impl Client {
     }
 
     fn _resubscribe(&mut self) {
-        let subs: Vec<SubscribeTopic> = self.subscriptions.values().map(|sub| { sub.to_subscribe_topic() }).collect();
+        let subs: Vec<SubscribeTopic> = self.subscriptions
+                                            .values()
+                                            .map(|sub| sub.to_subscribe_topic())
+                                            .collect();
         let _ = self._subscribe(subs);
     }
 
