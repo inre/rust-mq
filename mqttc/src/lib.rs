@@ -58,7 +58,7 @@ impl PubOpt {
     pub fn new(qos: QoS, retain: bool) -> PubOpt {
         let mut opt = PubOpt(qos.to_u8());
         if retain {
-            opt = opt & PubOpt::retain();
+            opt = opt | PubOpt::retain();
         }
         opt
     }
@@ -208,6 +208,18 @@ mod test {
 
         let pubopt = PubOpt::exactly_once() | PubOpt::retain();
         assert_eq!(pubopt.qos(), QoS::ExactlyOnce);
+        assert!(pubopt.is_retain());
+
+        let pubopt = PubOpt::new(QoS::AtLeastOnce, true);
+        assert_eq!(pubopt.qos(), QoS::AtLeastOnce);
+        assert!(pubopt.is_retain());
+
+        let pubopt = PubOpt::new(QoS::ExactlyOnce, true);
+        assert_eq!(pubopt.qos(), QoS::ExactlyOnce);
+        assert!(pubopt.is_retain());
+
+        let pubopt = PubOpt::new(QoS::AtMostOnce, true);
+        assert_eq!(pubopt.qos(), QoS::AtMostOnce);
         assert!(pubopt.is_retain());
     }
 }

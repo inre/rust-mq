@@ -44,7 +44,7 @@ impl Message {
         Box::new(Publish {
             dup: dup,
             qos: qos,
-            retain: false,
+            retain: self.retain,
             topic_name: self.topic.path.clone(),
             pid: self.pid,
             payload: self.payload.clone()

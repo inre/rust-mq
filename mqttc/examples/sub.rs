@@ -7,7 +7,7 @@ use std::env;
 use std::process::exit;
 use std::time::Duration;
 use netopt::NetworkOptions;
-use mqttc::{Mqttc, Client, ClientOptions, ReconnectMethod, PubOpt};
+use mqttc::{PubSub, Client, ClientOptions, ReconnectMethod, PubOpt};
 
 fn main() {
     env_logger::init().unwrap();
