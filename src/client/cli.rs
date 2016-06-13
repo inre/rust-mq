@@ -75,7 +75,7 @@ impl CLI {
         };
 
         if matches.opt_present("h") {
-            self.subscribe_print_usage(opts);
+            self.publish_print_usage(opts);
             exit(0);
         };
 
