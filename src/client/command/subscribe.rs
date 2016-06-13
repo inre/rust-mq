@@ -6,7 +6,7 @@ use std::process::exit;
 use mqtt3::{self, LastWill, SubscribeTopic, QoS, Protocol};
 use netopt::{NetworkOptions, SslContext};
 use mqttc::store;
-use mqttc::{Mqttc, ClientOptions, ReconnectMethod, Error};
+use mqttc::{PubSub, ClientOptions, ReconnectMethod, Error};
 use super::{Command, LocalStorage};
 use client::logger::set_stdout_logger;
 

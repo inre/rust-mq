@@ -31,7 +31,7 @@ use mqtt3::{QoS, ToTopicPath};
 
 const MAX_QOS: QoS = mqtt3::QoS::AtLeastOnce;
 
-pub trait Mqttc {
+pub trait PubSub {
     fn publish<T: ToTopicPath, P: ToPayload>(&mut self, topic: T, payload: P, pubopt: PubOpt) -> Result<()>;
     fn subscribe<S: ToSubTopics>(&mut self, subs: S) -> Result<()>;
     fn unsubscribe<U: ToUnSubTopics>(&mut self, unsubs: U) -> Result<()>;

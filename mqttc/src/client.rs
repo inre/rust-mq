@@ -9,7 +9,7 @@ use mqtt3::{MqttRead, MqttWrite, Message, QoS, SubscribeReturnCodes, SubscribeTo
 use mqtt3::{self, Protocol, Packet, ConnectReturnCode, PacketIdentifier, LastWill, ToTopicPath};
 use error::{Error, Result};
 use sub::Subscription;
-use {Mqttc, ClientState, ReconnectMethod, PubOpt, ToPayload, ToSubTopics, ToUnSubTopics};
+use {PubSub, ClientState, ReconnectMethod, PubOpt, ToPayload, ToSubTopics, ToUnSubTopics};
 use store::Store;
 
 // #[derive(Clone)]
@@ -207,7 +207,7 @@ pub struct Client {
     subscriptions: HashMap<String, Subscription>,
 }
 
-impl Mqttc for Client {
+impl PubSub for Client {
     fn publish<T, P>(&mut self, topic: T, payload: P, pubopt: PubOpt) -> Result<()>
         where T: ToTopicPath,
               P: ToPayload
