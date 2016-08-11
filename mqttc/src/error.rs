@@ -1,5 +1,7 @@
 use std::result;
 use std::io;
+use std::fmt;
+use std::error;
 use mqtt3::{ConnectReturnCode, PacketIdentifier};
 use mqtt3::Error as MqttError;
 use store::Error as StorageError;
@@ -46,5 +48,63 @@ impl From<MqttError> for Error {
 impl From<StorageError> for Error {
     fn from(err: StorageError) -> Error {
         Error::Storage(err)
+    }
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            // Both underlying errors already impl `Display`, so we defer to
+            // their implementations.
+            Error::UnhandledPuback(PacketIdentifier(pi)) => fmt::write(f, format_args!("{:?}", pi)),
+            Error::UnhandledPubrec(PacketIdentifier(pi)) => fmt::write(f, format_args!("{:?}", pi)),
+            Error::UnhandledPubrel(PacketIdentifier(pi)) => fmt::write(f, format_args!("{:?}", pi)),
+            Error::UnhandledPubcomp(PacketIdentifier(pi)) => fmt::write(f, format_args!("{:?}", pi)),
+            Error::ConnectionRefused(crc) => fmt::write(f, format_args!("{:?}", crc)),
+            Error::Storage(ref err) => write!(f, "Storage error: {:?}", err),
+            Error::Mqtt(ref err) => write!(f, "MQTT error: {:?}", err),
+            Error::Io(ref err) => write!(f, "IO error: {}", err),
+            _ => fmt::write(f, format_args!("{:?}", *self)),
+        }
+    }
+}
+
+impl error::Error for Error {
+    fn description(&self) -> &str {
+        // Underlying errors already impl `Error`, so we defer to their
+        // implementations.
+        match *self {
+            Error::AlreadyConnected => "AlreadyConnected",
+            Error::UnsupportedFeature => "UnsupportedFeature",
+            Error::UnrecognizedPacket => "UnrecognizedPacket",
+            Error::ConnectionAbort => "ConnectionAbort",
+            Error::IncommingStorageAbsent => "IncommingStorageAbsent",
+            Error::OutgoingStorageAbsent => "OutgoingStorageAbsent",
+            Error::HandshakeFailed => "HandshakeFailed",
+            Error::ProtocolViolation => "ProtocolViolation",
+            Error::Disconnected => "Disconnected",
+            Error::Timeout => "Timeout",
+            Error::UnhandledPuback(_) => "UnhandledPuback",
+            Error::UnhandledPubrec(_) => "UnhandledPubrec",
+            Error::UnhandledPubrel(_) => "UnhandledPubrel",
+            Error::UnhandledPubcomp(_) => "UnhandledPubcomp",
+            Error::ConnectionRefused(_) => "ConnectionRefused",
+            Error::Storage(ref err) => err.description(),
+            Error::Mqtt(ref err) => err.description(),
+            Error::Io(ref err) => err.description(),
+        }
+    }
+
+    fn cause(&self) -> Option<&error::Error> {
+        match *self {
+            // N.B. These errors implicitly cast `err` from their concrete
+            // types (either `&io::Error` or `&num::ParseIntError`)
+            // to a trait object `&Error`. This works because both error types
+            // implement `Error`.
+            Error::Storage(ref err) => Some(err),
+            Error::Mqtt(ref err) => Some(err),
+            Error::Io(ref err) => Some(err),
+            _ => None,
+        }
     }
 }
