@@ -1,6 +1,6 @@
 [package]
 name = "rust-mq"
-version = "0.1.2"
+version = "0.1.3"
 authors = ["Maksim V. <inre.storm@gmail.com>"]
 description = "RustMQ is the MQTT broker written on pure Rust."
 license = "MIT"
