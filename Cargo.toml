@@ -12,6 +12,13 @@ exclude       = [
   "tmp/**/*"
 ]
 
+[workspace]
+members = [
+  "mqtt3",
+  "mqttc",
+  "netopt"
+]
+
 [[bin]]
 name = "mqttc"
 path = "src/bin/mqttc.rs"
