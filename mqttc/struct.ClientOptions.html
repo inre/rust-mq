@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `ClientOptions` struct in crate `mqttc`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, ClientOptions">
+
+    <title>mqttc::ClientOptions - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../main.css">
+    
+
+    
+    
+</head>
+<body class="rustdoc">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        <p class='location'><a href='index.html'>mqttc</a></p><script>window.sidebarCurrent = {name: 'ClientOptions', ty: 'struct', relpath: ''};</script><script defer src="sidebar-items.js"></script>
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content struct">
+<h1 class='fqn'><span class='in-band'>Struct <a href='index.html'>mqttc</a>::<wbr><a class='struct' href=''>ClientOptions</a></span><span class='out-of-band'><span id='render-detail'>
+                   <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                       [<span class='inner'>&#x2212;</span>]
+                   </a>
+               </span><a id='src-161' class='srclink' href='../src/mqttc/client.rs.html#16-28' title='goto source code'>[src]</a></span></h1>
+<pre class='rust struct'>pub struct ClientOptions {
+    // some fields omitted
+}</pre><h2 id='methods'>Methods</h2><h3 class='impl'><span class='in-band'><code>impl <a class='struct' href='../mqttc/struct.ClientOptions.html' title='mqttc::ClientOptions'>ClientOptions</a></code></span><span class='out-of-band'><div class='ghost'></div><a id='src-172' class='srclink' href='../src/mqttc/client.rs.html#30-184' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.new' class='method'><span id='new.v' class='invisible'><code>fn <a href='#method.new' class='fnname'>new</a>() -&gt; <a class='struct' href='../mqttc/struct.ClientOptions.html' title='mqttc::ClientOptions'>ClientOptions</a></code></span></h4>
+<h4 id='method.set_keep_alive' class='method'><span id='set_keep_alive.v' class='invisible'><code>fn <a href='#method.set_keep_alive' class='fnname'>set_keep_alive</a>(&amp;mut self, secs: <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u16.html'>u16</a>) -&gt; &amp;mut <a class='struct' href='../mqttc/struct.ClientOptions.html' title='mqttc::ClientOptions'>ClientOptions</a></code></span></h4>
+<h4 id='method.set_protocol' class='method'><span id='set_protocol.v' class='invisible'><code>fn <a href='#method.set_protocol' class='fnname'>set_protocol</a>(&amp;mut self, protocol: <a class='enum' href='../mqtt3/enum.Protocol.html' title='mqtt3::Protocol'>Protocol</a>) -&gt; &amp;mut <a class='struct' href='../mqttc/struct.ClientOptions.html' title='mqttc::ClientOptions'>ClientOptions</a></code></span></h4>
+<h4 id='method.set_client_id' class='method'><span id='set_client_id.v' class='invisible'><code>fn <a href='#method.set_client_id' class='fnname'>set_client_id</a>(&amp;mut self, client_id: <a class='struct' href='https://doc.rust-lang.org/nightly/collections/string/struct.String.html' title='collections::string::String'>String</a>) -&gt; &amp;mut <a class='struct' href='../mqttc/struct.ClientOptions.html' title='mqttc::ClientOptions'>ClientOptions</a></code></span></h4>
+<h4 id='method.set_clean_session' class='method'><span id='set_clean_session.v' class='invisible'><code>fn <a href='#method.set_clean_session' class='fnname'>set_clean_session</a>(&amp;mut self, clean_session: <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.bool.html'>bool</a>) -&gt; &amp;mut <a class='struct' href='../mqttc/struct.ClientOptions.html' title='mqttc::ClientOptions'>ClientOptions</a></code></span></h4>
+<h4 id='method.set_incomming_store' class='method'><span id='set_incomming_store.v' class='invisible'><code>fn <a href='#method.set_incomming_store' class='fnname'>set_incomming_store</a>(&amp;mut self, store: <a class='struct' href='https://doc.rust-lang.org/nightly/alloc/boxed/struct.Box.html' title='alloc::boxed::Box'>Box</a>&lt;<a class='trait' href='../mqttc/store/trait.Store.html' title='mqttc::store::Store'>Store</a> + <a class='trait' href='https://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a>&gt;) -&gt; &amp;mut <a class='struct' href='../mqttc/struct.ClientOptions.html' title='mqttc::ClientOptions'>ClientOptions</a></code></span></h4>
+<h4 id='method.set_outgoing_store' class='method'><span id='set_outgoing_store.v' class='invisible'><code>fn <a href='#method.set_outgoing_store' class='fnname'>set_outgoing_store</a>(&amp;mut self, store: <a class='struct' href='https://doc.rust-lang.org/nightly/alloc/boxed/struct.Box.html' title='alloc::boxed::Box'>Box</a>&lt;<a class='trait' href='../mqttc/store/trait.Store.html' title='mqttc::store::Store'>Store</a> + <a class='trait' href='https://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a>&gt;) -&gt; &amp;mut <a class='struct' href='../mqttc/struct.ClientOptions.html' title='mqttc::ClientOptions'>ClientOptions</a></code></span></h4>
+<h4 id='method.generate_client_id' class='method'><span id='generate_client_id.v' class='invisible'><code>fn <a href='#method.generate_client_id' class='fnname'>generate_client_id</a>(&amp;mut self) -&gt; &amp;mut <a class='struct' href='../mqttc/struct.ClientOptions.html' title='mqttc::ClientOptions'>ClientOptions</a></code></span></h4>
+<h4 id='method.set_username' class='method'><span id='set_username.v' class='invisible'><code>fn <a href='#method.set_username' class='fnname'>set_username</a>(&amp;mut self, username: <a class='struct' href='https://doc.rust-lang.org/nightly/collections/string/struct.String.html' title='collections::string::String'>String</a>) -&gt; &amp;mut <a class='struct' href='../mqttc/struct.ClientOptions.html' title='mqttc::ClientOptions'>ClientOptions</a></code></span></h4>
+<h4 id='method.set_password' class='method'><span id='set_password.v' class='invisible'><code>fn <a href='#method.set_password' class='fnname'>set_password</a>(&amp;mut self, password: <a class='struct' href='https://doc.rust-lang.org/nightly/collections/string/struct.String.html' title='collections::string::String'>String</a>) -&gt; &amp;mut <a class='struct' href='../mqttc/struct.ClientOptions.html' title='mqttc::ClientOptions'>ClientOptions</a></code></span></h4>
+<h4 id='method.set_last_will' class='method'><span id='set_last_will.v' class='invisible'><code>fn <a href='#method.set_last_will' class='fnname'>set_last_will</a>&lt;T:&nbsp;<a class='trait' href='../mqtt3/topic/trait.ToTopicPath.html' title='mqtt3::topic::ToTopicPath'>ToTopicPath</a>,&nbsp;P:&nbsp;<a class='trait' href='../mqttc/trait.ToPayload.html' title='mqttc::ToPayload'>ToPayload</a>&gt;(&amp;mut self, topic: T, message: <a class='struct' href='https://doc.rust-lang.org/nightly/collections/string/struct.String.html' title='collections::string::String'>String</a>, pub_opt: <a class='struct' href='../mqttc/struct.PubOpt.html' title='mqttc::PubOpt'>PubOpt</a>) -&gt; <a class='type' href='../mqttc/type.Result.html' title='mqttc::Result'>Result</a>&lt;<a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.tuple.html'>()</a>&gt;</code></span></h4>
+<h4 id='method.set_last_will_opt' class='method'><span id='set_last_will_opt.v' class='invisible'><code>fn <a href='#method.set_last_will_opt' class='fnname'>set_last_will_opt</a>(&amp;mut self, last_will: <a class='enum' href='https://doc.rust-lang.org/nightly/core/option/enum.Option.html' title='core::option::Option'>Option</a>&lt;<a class='struct' href='../mqtt3/struct.LastWill.html' title='mqtt3::LastWill'>LastWill</a>&gt;) -&gt; &amp;mut <a class='struct' href='../mqttc/struct.ClientOptions.html' title='mqttc::ClientOptions'>ClientOptions</a></code></span></h4>
+<h4 id='method.set_reconnect' class='method'><span id='set_reconnect.v' class='invisible'><code>fn <a href='#method.set_reconnect' class='fnname'>set_reconnect</a>(&amp;mut self, reconnect: <a class='enum' href='../mqttc/enum.ReconnectMethod.html' title='mqttc::ReconnectMethod'>ReconnectMethod</a>) -&gt; &amp;mut <a class='struct' href='../mqttc/struct.ClientOptions.html' title='mqttc::ClientOptions'>ClientOptions</a></code></span></h4>
+<h4 id='method.connect' class='method'><span id='connect.v' class='invisible'><code>fn <a href='#method.connect' class='fnname'>connect</a>&lt;A:&nbsp;<a class='trait' href='https://doc.rust-lang.org/nightly/std/net/addr/trait.ToSocketAddrs.html' title='std::net::addr::ToSocketAddrs'>ToSocketAddrs</a>&gt;(self, addr: A, netopt: <a class='struct' href='../netopt/tcp/struct.NetworkOptions.html' title='netopt::tcp::NetworkOptions'>NetworkOptions</a>) -&gt; <a class='type' href='../mqttc/type.Result.html' title='mqttc::Result'>Result</a>&lt;<a class='struct' href='../mqttc/struct.Client.html' title='mqttc::Client'>Client</a>&gt;</code></span></h4>
+</div></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                    <dt>+</dt>
+                    <dd>Collapse/expand all sections</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../";
+        window.currentCrate = "mqttc";
+        window.playgroundUrl = "";
+    </script>
+    <script src="../jquery.js"></script>
+    <script src="../main.js"></script>
+    
+    <script defer src="../search-index.js"></script>
+</body>
+</html>

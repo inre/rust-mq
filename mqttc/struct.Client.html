@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `Client` struct in crate `mqttc`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, Client">
+
+    <title>mqttc::Client - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../main.css">
+    
+
+    
+    
+</head>
+<body class="rustdoc">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        <p class='location'><a href='index.html'>mqttc</a></p><script>window.sidebarCurrent = {name: 'Client', ty: 'struct', relpath: ''};</script><script defer src="sidebar-items.js"></script>
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content struct">
+<h1 class='fqn'><span class='in-band'>Struct <a href='index.html'>mqttc</a>::<wbr><a class='struct' href=''>Client</a></span><span class='out-of-band'><span id='render-detail'>
+                   <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                       [<span class='inner'>&#x2212;</span>]
+                   </a>
+               </span><a id='src-253' class='srclink' href='../src/mqttc/client.rs.html#186-208' title='goto source code'>[src]</a></span></h1>
+<pre class='rust struct'>pub struct Client {
+    // some fields omitted
+}</pre><h2 id='methods'>Methods</h2><h3 class='impl'><span class='in-band'><code>impl <a class='struct' href='../mqttc/struct.Client.html' title='mqttc::Client'>Client</a></code></span><span class='out-of-band'><div class='ghost'></div><a id='src-296' class='srclink' href='../src/mqttc/client.rs.html#235-714' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.await' class='method'><span id='await.v' class='invisible'><code>fn <a href='#method.await' class='fnname'>await</a>(&amp;mut self) -&gt; <a class='type' href='../mqttc/type.Result.html' title='mqttc::Result'>Result</a>&lt;<a class='enum' href='https://doc.rust-lang.org/nightly/core/option/enum.Option.html' title='core::option::Option'>Option</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/alloc/boxed/struct.Box.html' title='alloc::boxed::Box'>Box</a>&lt;<a class='struct' href='../mqtt3/msg/struct.Message.html' title='mqtt3::msg::Message'>Message</a>&gt;&gt;&gt;</code></span></h4>
+<h4 id='method.accept' class='method'><span id='accept.v' class='invisible'><code>fn <a href='#method.accept' class='fnname'>accept</a>(&amp;mut self) -&gt; <a class='type' href='../mqttc/type.Result.html' title='mqttc::Result'>Result</a>&lt;<a class='enum' href='https://doc.rust-lang.org/nightly/core/option/enum.Option.html' title='core::option::Option'>Option</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/alloc/boxed/struct.Box.html' title='alloc::boxed::Box'>Box</a>&lt;<a class='struct' href='../mqtt3/msg/struct.Message.html' title='mqtt3::msg::Message'>Message</a>&gt;&gt;&gt;</code></span></h4>
+<h4 id='method.reconnect' class='method'><span id='reconnect.v' class='invisible'><code>fn <a href='#method.reconnect' class='fnname'>reconnect</a>(&amp;mut self) -&gt; <a class='type' href='../mqttc/type.Result.html' title='mqttc::Result'>Result</a>&lt;<a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.tuple.html'>()</a>&gt;</code></span></h4>
+<h4 id='method.ping' class='method'><span id='ping.v' class='invisible'><code>fn <a href='#method.ping' class='fnname'>ping</a>(&amp;mut self) -&gt; <a class='type' href='../mqttc/type.Result.html' title='mqttc::Result'>Result</a>&lt;<a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.tuple.html'>()</a>&gt;</code></span></h4>
+<h4 id='method.complete' class='method'><span id='complete.v' class='invisible'><code>fn <a href='#method.complete' class='fnname'>complete</a>(&amp;mut self, pid: <a class='struct' href='../mqtt3/struct.PacketIdentifier.html' title='mqtt3::PacketIdentifier'>PacketIdentifier</a>) -&gt; <a class='type' href='../mqttc/type.Result.html' title='mqttc::Result'>Result</a>&lt;<a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.tuple.html'>()</a>&gt;</code></span></h4>
+<h4 id='method.terminate' class='method'><span id='terminate.v' class='invisible'><code>fn <a href='#method.terminate' class='fnname'>terminate</a>(&amp;mut self)</code></span></h4>
+<h4 id='method.set_reconnect' class='method'><span id='set_reconnect.v' class='invisible'><code>fn <a href='#method.set_reconnect' class='fnname'>set_reconnect</a>(&amp;mut self, reconnect: <a class='enum' href='../mqttc/enum.ReconnectMethod.html' title='mqttc::ReconnectMethod'>ReconnectMethod</a>)</code></span></h4>
+<h4 id='method.session_present' class='method'><span id='session_present.v' class='invisible'><code>fn <a href='#method.session_present' class='fnname'>session_present</a>(&amp;self) -&gt; <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.bool.html'>bool</a></code></span></h4>
+</div><h2 id='implementations'>Trait Implementations</h2><h3 class='impl'><span class='in-band'><code>impl <a class='trait' href='../mqttc/trait.PubSub.html' title='mqttc::PubSub'>PubSub</a> for <a class='struct' href='../mqttc/struct.Client.html' title='mqttc::Client'>Client</a></code></span><span class='out-of-band'><div class='ghost'></div><a id='src-272' class='srclink' href='../src/mqttc/client.rs.html#210-233' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.publish' class='method'><span id='publish.v' class='invisible'><code>fn <a href='../mqttc/trait.PubSub.html#tymethod.publish' class='fnname'>publish</a>&lt;T,&nbsp;P&gt;(&amp;mut self, topic: T, payload: P, pubopt: <a class='struct' href='../mqttc/struct.PubOpt.html' title='mqttc::PubOpt'>PubOpt</a>) -&gt; <a class='type' href='../mqttc/type.Result.html' title='mqttc::Result'>Result</a>&lt;<a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.tuple.html'>()</a>&gt; <span class='where'>where T: <a class='trait' href='../mqtt3/topic/trait.ToTopicPath.html' title='mqtt3::topic::ToTopicPath'>ToTopicPath</a>, P: <a class='trait' href='../mqttc/trait.ToPayload.html' title='mqttc::ToPayload'>ToPayload</a></span></code></span></h4>
+<h4 id='method.subscribe' class='method'><span id='subscribe.v' class='invisible'><code>fn <a href='../mqttc/trait.PubSub.html#tymethod.subscribe' class='fnname'>subscribe</a>&lt;S:&nbsp;<a class='trait' href='../mqttc/trait.ToSubTopics.html' title='mqttc::ToSubTopics'>ToSubTopics</a>&gt;(&amp;mut self, subs: S) -&gt; <a class='type' href='../mqttc/type.Result.html' title='mqttc::Result'>Result</a>&lt;<a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.tuple.html'>()</a>&gt;</code></span></h4>
+<h4 id='method.unsubscribe' class='method'><span id='unsubscribe.v' class='invisible'><code>fn <a href='../mqttc/trait.PubSub.html#tymethod.unsubscribe' class='fnname'>unsubscribe</a>&lt;U:&nbsp;<a class='trait' href='../mqttc/trait.ToUnSubTopics.html' title='mqttc::ToUnSubTopics'>ToUnSubTopics</a>&gt;(&amp;mut self, unsubs: U) -&gt; <a class='type' href='../mqttc/type.Result.html' title='mqttc::Result'>Result</a>&lt;<a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.tuple.html'>()</a>&gt;</code></span></h4>
+<h4 id='method.disconnect' class='method'><span id='disconnect.v' class='invisible'><code>fn <a href='../mqttc/trait.PubSub.html#tymethod.disconnect' class='fnname'>disconnect</a>(self) -&gt; <a class='type' href='../mqttc/type.Result.html' title='mqttc::Result'>Result</a>&lt;<a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.tuple.html'>()</a>&gt;</code></span></h4>
+</div></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                    <dt>+</dt>
+                    <dd>Collapse/expand all sections</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../";
+        window.currentCrate = "mqttc";
+        window.playgroundUrl = "";
+    </script>
+    <script src="../jquery.js"></script>
+    <script src="../main.js"></script>
+    
+    <script defer src="../search-index.js"></script>
+</body>
+</html>

@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["CLI",""]],"trait":[["Command",""]]});

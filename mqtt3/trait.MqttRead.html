@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `MqttRead` trait in crate `mqtt3`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, MqttRead">
+
+    <title>mqtt3::MqttRead - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../main.css">
+    
+
+    
+    
+</head>
+<body class="rustdoc">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        <p class='location'><a href='index.html'>mqtt3</a></p><script>window.sidebarCurrent = {name: 'MqttRead', ty: 'trait', relpath: ''};</script><script defer src="sidebar-items.js"></script>
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content trait">
+<h1 class='fqn'><span class='in-band'>Trait <a href='index.html'>mqtt3</a>::<wbr><a class='trait' href=''>MqttRead</a></span><span class='out-of-band'><span id='render-detail'>
+                   <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                       [<span class='inner'>&#x2212;</span>]
+                   </a>
+               </span><a id='src-502' class='srclink' href='../src/mqtt3/read.rs.html#18-256' title='goto source code'>[src]</a></span></h1>
+<pre class='rust trait'>pub trait MqttRead: <a class='trait' href='http://burntsushi.net/rustdoc/byteorder/byteorder/new/trait.ReadBytesExt.html' title='byteorder::new::ReadBytesExt'>ReadBytesExt</a> {
+    fn <a href='#method.read_packet' class='fnname'>read_packet</a>(&amp;mut self) -&gt; <a class='type' href='../mqtt3/type.Result.html' title='mqtt3::Result'>Result</a>&lt;<a class='enum' href='../mqtt3/enum.Packet.html' title='mqtt3::Packet'>Packet</a>&gt; { ... }
+    fn <a href='#method.read_connect' class='fnname'>read_connect</a>(&amp;mut self, _: <a class='struct' href='../mqtt3/struct.Header.html' title='mqtt3::Header'>Header</a>) -&gt; <a class='type' href='../mqtt3/type.Result.html' title='mqtt3::Result'>Result</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/alloc/boxed/struct.Box.html' title='alloc::boxed::Box'>Box</a>&lt;<a class='struct' href='../mqtt3/struct.Connect.html' title='mqtt3::Connect'>Connect</a>&gt;&gt; { ... }
+    fn <a href='#method.read_connack' class='fnname'>read_connack</a>(&amp;mut self, header: <a class='struct' href='../mqtt3/struct.Header.html' title='mqtt3::Header'>Header</a>) -&gt; <a class='type' href='../mqtt3/type.Result.html' title='mqtt3::Result'>Result</a>&lt;<a class='struct' href='../mqtt3/struct.Connack.html' title='mqtt3::Connack'>Connack</a>&gt; { ... }
+    fn <a href='#method.read_publish' class='fnname'>read_publish</a>(&amp;mut self, header: <a class='struct' href='../mqtt3/struct.Header.html' title='mqtt3::Header'>Header</a>) -&gt; <a class='type' href='../mqtt3/type.Result.html' title='mqtt3::Result'>Result</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/alloc/boxed/struct.Box.html' title='alloc::boxed::Box'>Box</a>&lt;<a class='struct' href='../mqtt3/struct.Publish.html' title='mqtt3::Publish'>Publish</a>&gt;&gt; { ... }
+    fn <a href='#method.read_subscribe' class='fnname'>read_subscribe</a>(&amp;mut self, header: <a class='struct' href='../mqtt3/struct.Header.html' title='mqtt3::Header'>Header</a>) -&gt; <a class='type' href='../mqtt3/type.Result.html' title='mqtt3::Result'>Result</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/alloc/boxed/struct.Box.html' title='alloc::boxed::Box'>Box</a>&lt;<a class='struct' href='../mqtt3/struct.Subscribe.html' title='mqtt3::Subscribe'>Subscribe</a>&gt;&gt; { ... }
+    fn <a href='#method.read_suback' class='fnname'>read_suback</a>(&amp;mut self, header: <a class='struct' href='../mqtt3/struct.Header.html' title='mqtt3::Header'>Header</a>) -&gt; <a class='type' href='../mqtt3/type.Result.html' title='mqtt3::Result'>Result</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/alloc/boxed/struct.Box.html' title='alloc::boxed::Box'>Box</a>&lt;<a class='struct' href='../mqtt3/struct.Suback.html' title='mqtt3::Suback'>Suback</a>&gt;&gt; { ... }
+    fn <a href='#method.read_unsubscribe' class='fnname'>read_unsubscribe</a>(&amp;mut self, header: <a class='struct' href='../mqtt3/struct.Header.html' title='mqtt3::Header'>Header</a>) -&gt; <a class='type' href='../mqtt3/type.Result.html' title='mqtt3::Result'>Result</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/alloc/boxed/struct.Box.html' title='alloc::boxed::Box'>Box</a>&lt;<a class='struct' href='../mqtt3/struct.Unsubscribe.html' title='mqtt3::Unsubscribe'>Unsubscribe</a>&gt;&gt; { ... }
+    fn <a href='#method.read_payload' class='fnname'>read_payload</a>(&amp;mut self, len: <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>) -&gt; <a class='type' href='../mqtt3/type.Result.html' title='mqtt3::Result'>Result</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/alloc/boxed/struct.Box.html' title='alloc::boxed::Box'>Box</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/collections/vec/struct.Vec.html' title='collections::vec::Vec'>Vec</a>&lt;<a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u8.html'>u8</a>&gt;&gt;&gt; { ... }
+    fn <a href='#method.read_mqtt_string' class='fnname'>read_mqtt_string</a>(&amp;mut self) -&gt; <a class='type' href='../mqtt3/type.Result.html' title='mqtt3::Result'>Result</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/collections/string/struct.String.html' title='collections::string::String'>String</a>&gt; { ... }
+    fn <a href='#method.read_remaining_length' class='fnname'>read_remaining_length</a>(&amp;mut self) -&gt; <a class='type' href='../mqtt3/type.Result.html' title='mqtt3::Result'>Result</a>&lt;<a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>&gt; { ... }
+}</pre>
+            <h2 id='provided-methods'>Provided Methods</h2>
+            <div class='methods'>
+        <h3 id='method.read_packet' class='method stab '><span id='read_packet.v' class='invisible'><code>fn <a href='#method.read_packet' class='fnname'>read_packet</a>(&amp;mut self) -&gt; <a class='type' href='../mqtt3/type.Result.html' title='mqtt3::Result'>Result</a>&lt;<a class='enum' href='../mqtt3/enum.Packet.html' title='mqtt3::Packet'>Packet</a>&gt;</code></span></h3><h3 id='method.read_connect' class='method stab '><span id='read_connect.v' class='invisible'><code>fn <a href='#method.read_connect' class='fnname'>read_connect</a>(&amp;mut self, _: <a class='struct' href='../mqtt3/struct.Header.html' title='mqtt3::Header'>Header</a>) -&gt; <a class='type' href='../mqtt3/type.Result.html' title='mqtt3::Result'>Result</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/alloc/boxed/struct.Box.html' title='alloc::boxed::Box'>Box</a>&lt;<a class='struct' href='../mqtt3/struct.Connect.html' title='mqtt3::Connect'>Connect</a>&gt;&gt;</code></span></h3><h3 id='method.read_connack' class='method stab '><span id='read_connack.v' class='invisible'><code>fn <a href='#method.read_connack' class='fnname'>read_connack</a>(&amp;mut self, header: <a class='struct' href='../mqtt3/struct.Header.html' title='mqtt3::Header'>Header</a>) -&gt; <a class='type' href='../mqtt3/type.Result.html' title='mqtt3::Result'>Result</a>&lt;<a class='struct' href='../mqtt3/struct.Connack.html' title='mqtt3::Connack'>Connack</a>&gt;</code></span></h3><h3 id='method.read_publish' class='method stab '><span id='read_publish.v' class='invisible'><code>fn <a href='#method.read_publish' class='fnname'>read_publish</a>(&amp;mut self, header: <a class='struct' href='../mqtt3/struct.Header.html' title='mqtt3::Header'>Header</a>) -&gt; <a class='type' href='../mqtt3/type.Result.html' title='mqtt3::Result'>Result</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/alloc/boxed/struct.Box.html' title='alloc::boxed::Box'>Box</a>&lt;<a class='struct' href='../mqtt3/struct.Publish.html' title='mqtt3::Publish'>Publish</a>&gt;&gt;</code></span></h3><h3 id='method.read_subscribe' class='method stab '><span id='read_subscribe.v' class='invisible'><code>fn <a href='#method.read_subscribe' class='fnname'>read_subscribe</a>(&amp;mut self, header: <a class='struct' href='../mqtt3/struct.Header.html' title='mqtt3::Header'>Header</a>) -&gt; <a class='type' href='../mqtt3/type.Result.html' title='mqtt3::Result'>Result</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/alloc/boxed/struct.Box.html' title='alloc::boxed::Box'>Box</a>&lt;<a class='struct' href='../mqtt3/struct.Subscribe.html' title='mqtt3::Subscribe'>Subscribe</a>&gt;&gt;</code></span></h3><h3 id='method.read_suback' class='method stab '><span id='read_suback.v' class='invisible'><code>fn <a href='#method.read_suback' class='fnname'>read_suback</a>(&amp;mut self, header: <a class='struct' href='../mqtt3/struct.Header.html' title='mqtt3::Header'>Header</a>) -&gt; <a class='type' href='../mqtt3/type.Result.html' title='mqtt3::Result'>Result</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/alloc/boxed/struct.Box.html' title='alloc::boxed::Box'>Box</a>&lt;<a class='struct' href='../mqtt3/struct.Suback.html' title='mqtt3::Suback'>Suback</a>&gt;&gt;</code></span></h3><h3 id='method.read_unsubscribe' class='method stab '><span id='read_unsubscribe.v' class='invisible'><code>fn <a href='#method.read_unsubscribe' class='fnname'>read_unsubscribe</a>(&amp;mut self, header: <a class='struct' href='../mqtt3/struct.Header.html' title='mqtt3::Header'>Header</a>) -&gt; <a class='type' href='../mqtt3/type.Result.html' title='mqtt3::Result'>Result</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/alloc/boxed/struct.Box.html' title='alloc::boxed::Box'>Box</a>&lt;<a class='struct' href='../mqtt3/struct.Unsubscribe.html' title='mqtt3::Unsubscribe'>Unsubscribe</a>&gt;&gt;</code></span></h3><h3 id='method.read_payload' class='method stab '><span id='read_payload.v' class='invisible'><code>fn <a href='#method.read_payload' class='fnname'>read_payload</a>(&amp;mut self, len: <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>) -&gt; <a class='type' href='../mqtt3/type.Result.html' title='mqtt3::Result'>Result</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/alloc/boxed/struct.Box.html' title='alloc::boxed::Box'>Box</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/collections/vec/struct.Vec.html' title='collections::vec::Vec'>Vec</a>&lt;<a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u8.html'>u8</a>&gt;&gt;&gt;</code></span></h3><h3 id='method.read_mqtt_string' class='method stab '><span id='read_mqtt_string.v' class='invisible'><code>fn <a href='#method.read_mqtt_string' class='fnname'>read_mqtt_string</a>(&amp;mut self) -&gt; <a class='type' href='../mqtt3/type.Result.html' title='mqtt3::Result'>Result</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/collections/string/struct.String.html' title='collections::string::String'>String</a>&gt;</code></span></h3><h3 id='method.read_remaining_length' class='method stab '><span id='read_remaining_length.v' class='invisible'><code>fn <a href='#method.read_remaining_length' class='fnname'>read_remaining_length</a>(&amp;mut self) -&gt; <a class='type' href='../mqtt3/type.Result.html' title='mqtt3::Result'>Result</a>&lt;<a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>&gt;</code></span></h3></div>
+        <h2 id='implementors'>Implementors</h2>
+        <ul class='item-list' id='implementors-list'>
+    <li><code>impl MqttRead for <a class='struct' href='https://doc.rust-lang.org/nightly/std/net/tcp/struct.TcpStream.html' title='std::net::tcp::TcpStream'>TcpStream</a></code></li>
+<li><code>impl MqttRead for <a class='struct' href='https://doc.rust-lang.org/nightly/std/io/cursor/struct.Cursor.html' title='std::io::cursor::Cursor'>Cursor</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/collections/vec/struct.Vec.html' title='collections::vec::Vec'>Vec</a>&lt;<a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u8.html'>u8</a>&gt;&gt;</code></li>
+<li><code>impl&lt;T:&nbsp;<a class='trait' href='https://doc.rust-lang.org/nightly/std/io/trait.Read.html' title='std::io::Read'>Read</a>&gt; MqttRead for <a class='struct' href='https://doc.rust-lang.org/nightly/std/io/struct.Take.html' title='std::io::Take'>Take</a>&lt;T&gt; <span class='where'>where T: <a class='trait' href='https://doc.rust-lang.org/nightly/std/io/trait.Read.html' title='std::io::Read'>Read</a></span></code></li>
+<li><code>impl&lt;T:&nbsp;<a class='trait' href='https://doc.rust-lang.org/nightly/std/io/trait.Read.html' title='std::io::Read'>Read</a>&gt; MqttRead for <a class='struct' href='https://doc.rust-lang.org/nightly/std/io/buffered/struct.BufReader.html' title='std::io::buffered::BufReader'>BufReader</a>&lt;T&gt;</code></li>
+</ul><script type="text/javascript" async
+                         src="../implementors/mqtt3/trait.MqttRead.js">
+                 </script></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                    <dt>+</dt>
+                    <dd>Collapse/expand all sections</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../";
+        window.currentCrate = "mqtt3";
+        window.playgroundUrl = "";
+    </script>
+    <script src="../jquery.js"></script>
+    <script src="../main.js"></script>
+    
+    <script defer src="../search-index.js"></script>
+</body>
+</html>

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `Error` enum in crate `mqttc`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, Error">
+
+    <title>mqttc::Error - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../main.css">
+    
+
+    
+    
+</head>
+<body class="rustdoc">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        <p class='location'><a href='index.html'>mqttc</a></p><script>window.sidebarCurrent = {name: 'Error', ty: 'enum', relpath: ''};</script><script defer src="sidebar-items.js"></script>
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content enum">
+<h1 class='fqn'><span class='in-band'>Enum <a href='index.html'>mqttc</a>::<wbr><a class='enum' href=''>Error</a></span><span class='out-of-band'><span id='render-detail'>
+                   <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                       [<span class='inner'>&#x2212;</span>]
+                   </a>
+               </span><a id='src-47' class='srclink' href='../src/mqttc/error.rs.html#10-29' title='goto source code'>[src]</a></span></h1>
+<pre class='rust enum'>pub enum Error {
+    AlreadyConnected,
+    UnsupportedFeature,
+    UnrecognizedPacket,
+    ConnectionAbort,
+    IncommingStorageAbsent,
+    OutgoingStorageAbsent,
+    HandshakeFailed,
+    ProtocolViolation,
+    Disconnected,
+    Timeout,
+    UnhandledPuback(<a class='struct' href='../mqtt3/struct.PacketIdentifier.html' title='mqtt3::PacketIdentifier'>PacketIdentifier</a>),
+    UnhandledPubrec(<a class='struct' href='../mqtt3/struct.PacketIdentifier.html' title='mqtt3::PacketIdentifier'>PacketIdentifier</a>),
+    UnhandledPubrel(<a class='struct' href='../mqtt3/struct.PacketIdentifier.html' title='mqtt3::PacketIdentifier'>PacketIdentifier</a>),
+    UnhandledPubcomp(<a class='struct' href='../mqtt3/struct.PacketIdentifier.html' title='mqtt3::PacketIdentifier'>PacketIdentifier</a>),
+    ConnectionRefused(<a class='enum' href='../mqtt3/enum.ConnectReturnCode.html' title='mqtt3::ConnectReturnCode'>ConnectReturnCode</a>),
+    Storage(<a class='enum' href='../mqttc/store/enum.Error.html' title='mqttc::store::Error'>StorageError</a>),
+    Mqtt(<a class='enum' href='../mqtt3/error/enum.Error.html' title='mqtt3::error::Error'>MqttError</a>),
+    Io(<a class='struct' href='https://doc.rust-lang.org/nightly/std/io/error/struct.Error.html' title='std::io::error::Error'>Error</a>),
+}</pre><h2 class='variants'>Variants</h2>
+<span id='variant.AlreadyConnected' class='variant'><span id='AlreadyConnected.v' class='invisible'><code>AlreadyConnected</code></span></span><span id='variant.UnsupportedFeature' class='variant'><span id='UnsupportedFeature.v' class='invisible'><code>UnsupportedFeature</code></span></span><span id='variant.UnrecognizedPacket' class='variant'><span id='UnrecognizedPacket.v' class='invisible'><code>UnrecognizedPacket</code></span></span><span id='variant.ConnectionAbort' class='variant'><span id='ConnectionAbort.v' class='invisible'><code>ConnectionAbort</code></span></span><span id='variant.IncommingStorageAbsent' class='variant'><span id='IncommingStorageAbsent.v' class='invisible'><code>IncommingStorageAbsent</code></span></span><span id='variant.OutgoingStorageAbsent' class='variant'><span id='OutgoingStorageAbsent.v' class='invisible'><code>OutgoingStorageAbsent</code></span></span><span id='variant.HandshakeFailed' class='variant'><span id='HandshakeFailed.v' class='invisible'><code>HandshakeFailed</code></span></span><span id='variant.ProtocolViolation' class='variant'><span id='ProtocolViolation.v' class='invisible'><code>ProtocolViolation</code></span></span><span id='variant.Disconnected' class='variant'><span id='Disconnected.v' class='invisible'><code>Disconnected</code></span></span><span id='variant.Timeout' class='variant'><span id='Timeout.v' class='invisible'><code>Timeout</code></span></span><span id='variant.UnhandledPuback' class='variant'><span id='UnhandledPuback.v' class='invisible'><code>UnhandledPuback(<a class='struct' href='../mqtt3/struct.PacketIdentifier.html' title='mqtt3::PacketIdentifier'>PacketIdentifier</a>)</code></span></span><span id='variant.UnhandledPubrec' class='variant'><span id='UnhandledPubrec.v' class='invisible'><code>UnhandledPubrec(<a class='struct' href='../mqtt3/struct.PacketIdentifier.html' title='mqtt3::PacketIdentifier'>PacketIdentifier</a>)</code></span></span><span id='variant.UnhandledPubrel' class='variant'><span id='UnhandledPubrel.v' class='invisible'><code>UnhandledPubrel(<a class='struct' href='../mqtt3/struct.PacketIdentifier.html' title='mqtt3::PacketIdentifier'>PacketIdentifier</a>)</code></span></span><span id='variant.UnhandledPubcomp' class='variant'><span id='UnhandledPubcomp.v' class='invisible'><code>UnhandledPubcomp(<a class='struct' href='../mqtt3/struct.PacketIdentifier.html' title='mqtt3::PacketIdentifier'>PacketIdentifier</a>)</code></span></span><span id='variant.ConnectionRefused' class='variant'><span id='ConnectionRefused.v' class='invisible'><code>ConnectionRefused(<a class='enum' href='../mqtt3/enum.ConnectReturnCode.html' title='mqtt3::ConnectReturnCode'>ConnectReturnCode</a>)</code></span></span><span id='variant.Storage' class='variant'><span id='Storage.v' class='invisible'><code>Storage(<a class='enum' href='../mqttc/store/enum.Error.html' title='mqttc::store::Error'>StorageError</a>)</code></span></span><span id='variant.Mqtt' class='variant'><span id='Mqtt.v' class='invisible'><code>Mqtt(<a class='enum' href='../mqtt3/error/enum.Error.html' title='mqtt3::error::Error'>MqttError</a>)</code></span></span><span id='variant.Io' class='variant'><span id='Io.v' class='invisible'><code>Io(<a class='struct' href='https://doc.rust-lang.org/nightly/std/io/error/struct.Error.html' title='std::io::error::Error'>Error</a>)</code></span></span><h2 id='implementations'>Trait Implementations</h2><h3 class='impl'><span class='in-band'><code>impl <a class='trait' href='https://doc.rust-lang.org/nightly/core/fmt/trait.Debug.html' title='core::fmt::Debug'>Debug</a> for <a class='enum' href='../mqttc/enum.Error.html' title='mqttc::Error'>Error</a></code></span><span class='out-of-band'><div class='ghost'></div><a id='src-17' class='srclink' href='../src/mqttc/error.rs.html#9' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.fmt' class='method'><span id='fmt.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/fmt/trait.Debug.html#tymethod.fmt' class='fnname'>fmt</a>(&amp;self, __arg_0: &amp;mut <a class='struct' href='https://doc.rust-lang.org/nightly/core/fmt/struct.Formatter.html' title='core::fmt::Formatter'>Formatter</a>) -&gt; <a class='type' href='https://doc.rust-lang.org/nightly/core/fmt/type.Result.html' title='core::fmt::Result'>Result</a></code></span></h4>
+<div class='docblock'><p>Formats the value using the given formatter.</p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl <a class='trait' href='https://doc.rust-lang.org/nightly/core/convert/trait.From.html' title='core::convert::From'>From</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/std/io/error/struct.Error.html' title='std::io::error::Error'>Error</a>&gt; for <a class='enum' href='../mqttc/enum.Error.html' title='mqttc::Error'>Error</a></code></span><span class='out-of-band'><div class='ghost'></div><a id='src-74' class='srclink' href='../src/mqttc/error.rs.html#31-35' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.from' class='method'><span id='from.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/convert/trait.From.html#tymethod.from' class='fnname'>from</a>(err: <a class='struct' href='https://doc.rust-lang.org/nightly/std/io/error/struct.Error.html' title='std::io::error::Error'>Error</a>) -&gt; <a class='enum' href='../mqttc/enum.Error.html' title='mqttc::Error'>Error</a></code></span></h4>
+<div class='docblock'><p>Performs the conversion.</p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl <a class='trait' href='https://doc.rust-lang.org/nightly/core/convert/trait.From.html' title='core::convert::From'>From</a>&lt;<a class='enum' href='../mqtt3/error/enum.Error.html' title='mqtt3::error::Error'>MqttError</a>&gt; for <a class='enum' href='../mqttc/enum.Error.html' title='mqttc::Error'>Error</a></code></span><span class='out-of-band'><div class='ghost'></div><a id='src-77' class='srclink' href='../src/mqttc/error.rs.html#37-44' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.from-1' class='method'><span id='from.v-1' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/convert/trait.From.html#tymethod.from' class='fnname'>from</a>(err: <a class='enum' href='../mqtt3/error/enum.Error.html' title='mqtt3::error::Error'>MqttError</a>) -&gt; <a class='enum' href='../mqttc/enum.Error.html' title='mqttc::Error'>Error</a></code></span></h4>
+<div class='docblock'><p>Performs the conversion.</p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl <a class='trait' href='https://doc.rust-lang.org/nightly/core/convert/trait.From.html' title='core::convert::From'>From</a>&lt;<a class='enum' href='../mqttc/store/enum.Error.html' title='mqttc::store::Error'>StorageError</a>&gt; for <a class='enum' href='../mqttc/enum.Error.html' title='mqttc::Error'>Error</a></code></span><span class='out-of-band'><div class='ghost'></div><a id='src-81' class='srclink' href='../src/mqttc/error.rs.html#46-50' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.from-2' class='method'><span id='from.v-2' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/convert/trait.From.html#tymethod.from' class='fnname'>from</a>(err: <a class='enum' href='../mqttc/store/enum.Error.html' title='mqttc::store::Error'>StorageError</a>) -&gt; <a class='enum' href='../mqttc/enum.Error.html' title='mqttc::Error'>Error</a></code></span></h4>
+<div class='docblock'><p>Performs the conversion.</p>
+</div></div></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                    <dt>+</dt>
+                    <dd>Collapse/expand all sections</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../";
+        window.currentCrate = "mqttc";
+        window.playgroundUrl = "";
+    </script>
+    <script src="../jquery.js"></script>
+    <script src="../main.js"></script>
+    
+    <script defer src="../search-index.js"></script>
+</body>
+</html>
