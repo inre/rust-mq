@@ -27,7 +27,8 @@ pub use client::{
 use std::sync::Arc;
 use std::ops;
 use std::time::Duration;
-use mqtt3::{QoS, ToTopicPath};
+pub use mqtt3::{QoS, ToTopicPath};
+pub use netopt::NetworkOptions;
 
 const MAX_QOS: QoS = mqtt3::QoS::AtLeastOnce;
 
