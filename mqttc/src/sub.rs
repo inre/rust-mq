@@ -43,11 +43,11 @@ impl<'a> ToSubTopics for &'a str {
     }
 }
 
-impl ToSubTopics for (String, QoS) {
+impl<S: Into<String> + Clone> ToSubTopics for (S, QoS) {
     type Iter = option::IntoIter<SubscribeTopic>;
     fn to_subscribe_topics(&self) -> Result<Self::Iter> {
-        let (ref topic_path, qos): (String, QoS) = *self;
-        Ok(Some(SubscribeTopic { topic_path: topic_path.clone(), qos: qos }).into_iter())
+        Ok(Some(SubscribeTopic { topic_path: self.0.clone().into(), qos: self.1 })
+            .into_iter())
     }
 }
 
