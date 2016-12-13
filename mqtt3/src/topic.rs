@@ -102,6 +102,10 @@ impl TopicPath {
         self.topics.len()
     }
 
+    pub fn topics(&self) -> &[Topic] {
+        &self.topics
+    }
+
     pub fn is_final(&self, index: usize) -> bool {
         let len = self.topics.len();
         len == 0 || len-1 == index
