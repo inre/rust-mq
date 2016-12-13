@@ -90,11 +90,11 @@ impl ClientOptions {
         self
     }
 
-    pub fn set_last_will<T: ToTopicPath, P: ToPayload>(&mut self,
-                                                       topic: T,
-                                                       message: String,
-                                                       pub_opt: PubOpt)
-                                                       -> Result<()> {
+    pub fn set_last_will<T: ToTopicPath>(&mut self,
+                                         topic: T,
+                                         message: String,
+                                         pub_opt: PubOpt)
+                                         -> Result<()> {
         let topic_name = try!(topic.to_topic_name());
         self.last_will = Some(LastWill {
             topic: try!(topic_name.to_topic_name()).path(),
