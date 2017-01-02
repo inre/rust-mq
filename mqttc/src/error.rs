@@ -1,8 +1,7 @@
-use std::result;
-use std::io;
-use std::fmt;
-use std::error;
+use super::*;
+use std::{result, io, fmt, error};
 use mqtt3::{ConnectReturnCode, PacketIdentifier};
+use netopt::Error as NetoptError;
 use mqtt3::Error as MqttError;
 use store::Error as StorageError;
 
@@ -20,6 +19,7 @@ pub enum Error {
     ProtocolViolation,
     Disconnected,
     Timeout,
+    InvalidUrlScheme(url::Url),
     UnhandledPuback(PacketIdentifier),
     UnhandledPubrec(PacketIdentifier),
     UnhandledPubrel(PacketIdentifier),
@@ -27,7 +27,8 @@ pub enum Error {
     ConnectionRefused(ConnectReturnCode),
     Storage(StorageError),
     Mqtt(MqttError),
-    Io(io::Error)
+    Netopt(NetoptError),
+    Io(io::Error),
 }
 
 impl From<io::Error> for Error {
@@ -45,6 +46,15 @@ impl From<MqttError> for Error {
     }
 }
 
+impl From<NetoptError> for Error {
+    fn from(err: NetoptError) -> Error {
+        match err {
+            NetoptError::Io(e) => Error::Io(e),
+            _ => Error::Netopt(err),
+        }
+    }
+}
+
 impl From<StorageError> for Error {
     fn from(err: StorageError) -> Error {
         Error::Storage(err)
@@ -54,6 +64,7 @@ impl From<StorageError> for Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
+            Error::InvalidUrlScheme(ref url) => write!(f, "{}: {}", std::error::Error::description(self), url),
             // Both underlying errors already impl `Display`, so we defer to
             // their implementations.
             Error::UnhandledPuback(PacketIdentifier(pi)) => fmt::write(f, format_args!("{:?}", pi)),
@@ -84,6 +95,7 @@ impl error::Error for Error {
             Error::ProtocolViolation => "ProtocolViolation",
             Error::Disconnected => "Disconnected",
             Error::Timeout => "Timeout",
+            Error::InvalidUrlScheme(_) => "Invalid scheme specified in url",
             Error::UnhandledPuback(_) => "UnhandledPuback",
             Error::UnhandledPubrec(_) => "UnhandledPubrec",
             Error::UnhandledPubrel(_) => "UnhandledPubrel",
@@ -91,6 +103,7 @@ impl error::Error for Error {
             Error::ConnectionRefused(_) => "ConnectionRefused",
             Error::Storage(ref err) => err.description(),
             Error::Mqtt(ref err) => err.description(),
+            Error::Netopt(ref err) => err.description(),
             Error::Io(ref err) => err.description(),
         }
     }
@@ -103,6 +116,7 @@ impl error::Error for Error {
             // implement `Error`.
             Error::Storage(ref err) => Some(err),
             Error::Mqtt(ref err) => Some(err),
+            Error::Netopt(ref err) => Some(err),
             Error::Io(ref err) => Some(err),
             _ => None,
         }

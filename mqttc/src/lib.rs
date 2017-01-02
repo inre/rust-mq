@@ -2,12 +2,15 @@
 extern crate rand;
 extern crate byteorder;
 extern crate mqtt3;
-extern crate netopt;
+extern crate url;
+#[cfg(feature = "ssl")]
+extern crate openssl;
 
 mod error;
 mod sub;
 mod client;
 pub mod store;
+pub mod netopt;
 
 pub use error::{
     Error,
@@ -28,7 +31,6 @@ use std::sync::Arc;
 use std::ops;
 use std::time::Duration;
 pub use mqtt3::{QoS, ToTopicPath, TopicPath, SubscribeTopic, Topic, Message, PacketIdentifier};
-pub use netopt::NetworkOptions;
 
 const MAX_QOS: QoS = mqtt3::QoS::AtLeastOnce;
 

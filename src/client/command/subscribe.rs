@@ -4,13 +4,14 @@ use openssl::ssl;
 use std::time::Duration;
 use std::process::exit;
 use mqtt3::{self, LastWill, SubscribeTopic, QoS, Protocol};
-use netopt::{NetworkOptions, SslContext};
+use url::{Host, HostAndPort};
 use mqttc::store;
 use mqttc::{PubSub, ClientOptions, ReconnectMethod, Error};
+use mqttc::netopt::{BoxedConnector, TcpConnector, SslConnector};
 use super::{Command, LocalStorage};
 use client::logger::set_stdout_logger;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct SubscribeCommand {
     // Subscribe
     pub topics: Vec<SubscribeTopic>,
@@ -40,13 +41,16 @@ pub struct SubscribeCommand {
     pub topic_filters: Vec<String>,
 
     // SSL/TLS option
-    pub ssl_context: Option<ssl::SslContext>,
+    pub ssl_connector: Option<ssl::SslConnector>,
 }
 
 impl Default for SubscribeCommand {
     fn default() -> SubscribeCommand {
         SubscribeCommand {
-            topics: vec![SubscribeTopic { topic_path: "#".to_string(), qos: QoS::ExactlyOnce }],
+            topics: vec![SubscribeTopic {
+                             topic_path: "#".to_string(),
+                             qos: QoS::ExactlyOnce,
+                         }],
             address: "localhost".to_string(),
             port: 1883,
             clean_session: true,
@@ -63,7 +67,7 @@ impl Default for SubscribeCommand {
             limit: None,
             retain: false,
             topic_filters: Vec::new(),
-            ssl_context: None
+            ssl_connector: None,
         }
     }
 }
@@ -74,13 +78,11 @@ impl Command for SubscribeCommand {
             set_stdout_logger().unwrap();
         }
 
-        debug!("{:?}", self);
-        let mut netopt = NetworkOptions::new();
-
-        if let Some(ref ssl_context) = self.ssl_context {
-            let ssl = SslContext::new(ssl_context.clone());
-            netopt.tls(ssl);
-            //print_message("TLS", ssl_context., term::color::BRIGHT_GREEN );
+        let mut connector = BoxedConnector::new(TcpConnector::new());
+        if let Some(ref ssl_connector) = self.ssl_connector {
+            connector =
+                BoxedConnector::new(SslConnector::new_with_ssl_connector(connector,
+                                                                         ssl_connector.clone()))
         };
 
         let mut opts = ClientOptions::new();
@@ -110,13 +112,19 @@ impl Command for SubscribeCommand {
             print_legend();
         };
 
-        let address = format!("{}:{}", self.address, self.port);
-
-        if !self.debug && !self.silence {
-            print_message("Connecting to", address.as_str(), term::color::BRIGHT_GREEN);
+        let host = Host::parse(&self.address).unwrap();
+        let host_port = HostAndPort {
+            host: host,
+            port: self.port,
         };
 
-        let mut client = opts.connect(address.as_str(), netopt).expect("Can't connect to server");
+        if !self.debug && !self.silence {
+            print_message("Connecting to",
+                          format!("{}:{}", host_port.host, host_port.port),
+                          term::color::BRIGHT_GREEN);
+        };
+
+        let mut client = opts.connect_with(connector, &host_port).expect("Can't connect to server");
 
         if !self.debug && !self.silence {
             print_topics(&self.topics);
@@ -133,13 +141,14 @@ impl Command for SubscribeCommand {
                             let color = match message.qos {
                                 QoS::AtMostOnce => term::color::BRIGHT_CYAN,
                                 QoS::AtLeastOnce => term::color::BRIGHT_MAGENTA,
-                                QoS::ExactlyOnce => term::color::BRIGHT_BLUE
+                                QoS::ExactlyOnce => term::color::BRIGHT_BLUE,
                             };
 
                             let payload = match String::from_utf8((*message.payload).clone()) {
                                 Ok(payload) => payload,
                                 Err(_) => {
-                                    format!("payload did not contain valid UTF-8 ({} bytes)", message.payload.len())
+                                    format!("payload did not contain valid UTF-8 ({} bytes)",
+                                            message.payload.len())
                                 }
                             };
 
@@ -151,37 +160,41 @@ impl Command for SubscribeCommand {
                         }
 
                     }
-                },
+                }
                 Err(e) => {
                     match e {
-                        Error::UnhandledPuback(_) => { print_error("unhandled puback") },
-                        Error::UnhandledPubrec(_) => { print_error("unhandled pubrec") },
-                        Error::UnhandledPubrel(_) => { print_error("unhandled pubrel") },
-                        Error::UnhandledPubcomp(_) => { print_error("unhandled pubcomp") },
-                        Error::Mqtt(ref err) => match *err {
-                            mqtt3::Error::TopicNameMustNotContainNonUtf8 => {
-                                print_error("topic name contains non-UTF-8 characters")
-                            },
-                            mqtt3::Error::TopicNameMustNotContainWildcard => {
-                                print_error("topic name contains wildcard")
-                            },
-                            _ => {
-                                print_error(format!("{:?}", e));
-                                exit(64);
+                        Error::UnhandledPuback(_) => print_error("unhandled puback"),
+                        Error::UnhandledPubrec(_) => print_error("unhandled pubrec"),
+                        Error::UnhandledPubrel(_) => print_error("unhandled pubrel"),
+                        Error::UnhandledPubcomp(_) => print_error("unhandled pubcomp"),
+                        Error::Mqtt(ref err) => {
+                            match *err {
+                                mqtt3::Error::TopicNameMustNotContainNonUtf8 => {
+                                    print_error("topic name contains non-UTF-8 characters")
+                                }
+                                mqtt3::Error::TopicNameMustNotContainWildcard => {
+                                    print_error("topic name contains wildcard")
+                                }
+                                _ => {
+                                    print_error(format!("{:?}", e));
+                                    exit(64);
+                                }
                             }
-                        },
-                        Error::Storage(ref err) => match *err {
-                            store::Error::NotFound(pid) => {
-                                // we have lost something
-                                let _ = client.complete(pid);
-                            },
-                            store::Error::Unavailable(_) => {
-                                // do nothing, just wait next pubrel
+                        }
+                        Error::Storage(ref err) => {
+                            match *err {
+                                store::Error::NotFound(pid) => {
+                                    // we have lost something
+                                    let _ = client.complete(pid);
+                                }
+                                store::Error::Unavailable(_) => {
+                                    // do nothing, just wait next pubrel
+                                }
                             }
-                        },
+                        }
                         Error::Disconnected | Error::ConnectionAbort => {
                             exit(64);
-                        },
+                        }
                         e => {
                             print_error(format!("{:?}", e));
                             client.terminate();
@@ -206,8 +219,8 @@ fn print_legend() {
     t.fg(term::color::BRIGHT_BLUE).unwrap();
     writeln!(t, "QoS 3 ").unwrap();
     t.fg(term::color::BRIGHT_GREEN).unwrap();
-    //writeln!(t, "Network").unwrap();
-    //t.reset().unwrap();
+    // writeln!(t, "Network").unwrap();
+    // t.reset().unwrap();
 }
 
 fn print_topics(topics: &[SubscribeTopic]) {
@@ -216,10 +229,11 @@ fn print_topics(topics: &[SubscribeTopic]) {
     write!(t, "     Subscribe ").unwrap();
     for topic in topics {
         t.fg(match topic.qos {
-            QoS::AtMostOnce => term::color::BRIGHT_CYAN,
-            QoS::AtLeastOnce => term::color::BRIGHT_MAGENTA,
-            QoS::ExactlyOnce => term::color::BRIGHT_BLUE
-        }).unwrap();
+                QoS::AtMostOnce => term::color::BRIGHT_CYAN,
+                QoS::AtLeastOnce => term::color::BRIGHT_MAGENTA,
+                QoS::ExactlyOnce => term::color::BRIGHT_BLUE,
+            })
+            .unwrap();
         write!(t, "{} ", topic.topic_path).unwrap();
     }
     t.reset().unwrap();

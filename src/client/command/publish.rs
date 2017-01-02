@@ -5,12 +5,13 @@ use std::process::exit;
 
 use openssl::ssl;
 use mqtt3::{QoS, Protocol};
-use netopt::{NetworkOptions, SslContext};
+use url::{Host, HostAndPort};
 use mqttc::{PubSub, ClientOptions, PubOpt};
+use mqttc::netopt::{TcpConnector, SslConnector, BoxedConnector};
 use super::{Command, LocalStorage};
 use client::logger::set_stdout_logger;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct PublishCommand {
     // Publish
     pub topic: String,
@@ -34,7 +35,7 @@ pub struct PublishCommand {
     pub password: Option<String>,
 
     // SSL/TLS option
-    pub ssl_context: Option<ssl::SslContext>
+    pub ssl_connector: Option<ssl::SslConnector>,
 }
 
 impl Default for PublishCommand {
@@ -57,7 +58,7 @@ impl Default for PublishCommand {
             username: None,
             password: None,
 
-            ssl_context: None
+            ssl_connector: None,
         }
     }
 }
@@ -68,12 +69,11 @@ impl Command for PublishCommand {
             set_stdout_logger().unwrap();
         }
 
-        debug!("{:?}", self);
-        let mut netopt = NetworkOptions::new();
-
-        if let Some(ref ssl_context) = self.ssl_context {
-            let ssl = SslContext::new(ssl_context.clone());
-            netopt.tls(ssl);
+        let mut connector = BoxedConnector::new(TcpConnector::new());
+        if let Some(ref ssl_connector) = self.ssl_connector {
+            connector =
+                BoxedConnector::new(SslConnector::new_with_ssl_connector(connector,
+                                                                         ssl_connector.clone()))
         };
 
         let mut opts = ClientOptions::new();
@@ -94,11 +94,18 @@ impl Command for PublishCommand {
             opts.set_client_id(client_id.clone());
         };
 
-        let address = format!("{}:{}", self.address, self.port);
-        let mut client = opts.connect(address.as_str(), netopt).expect("Can't connect to server");
+        let host = Host::parse(&self.address).unwrap();
+        let host_port = HostAndPort {
+            host: host,
+            port: self.port,
+        };
+        let mut client = opts.connect_with(connector, &host_port).expect("Can't connect to server");
 
         if let Some(ref message) = self.message {
-            client.publish(self.topic.clone(), message.clone(), PubOpt::new(self.qos, self.retain)).expect("Can't publish the message");
+            client.publish(self.topic.clone(),
+                         message.clone(),
+                         PubOpt::new(self.qos, self.retain))
+                .expect("Can't publish the message");
         } else if let Some(ref file) = self.file {
             let path = Path::new(file);
             if !path.exists() {
@@ -109,14 +116,18 @@ impl Command for PublishCommand {
             let mut f = OpenOptions::new().read(true).open(file).expect("Can't open file");
             f.read_to_end(&mut payload).expect("Can't read file");
             println!("Sending file {} bytes...", payload.len());
-            client.publish(self.topic.clone(), payload, PubOpt::new(self.qos, self.retain)).expect("Can't publish the message");
+            client.publish(self.topic.clone(),
+                         payload,
+                         PubOpt::new(self.qos, self.retain))
+                .expect("Can't publish the message");
         } else {
-            client.publish(self.topic.clone(), "", PubOpt::new(self.qos, self.retain)).expect("Can't publish the message");
+            client.publish(self.topic.clone(), "", PubOpt::new(self.qos, self.retain))
+                .expect("Can't publish the message");
         }
 
         if self.qos != QoS::AtMostOnce {
             // wait normalization
-            while client.await().unwrap().is_some() {};
+            while client.await().unwrap().is_some() {}
         }
 
         exit(0);

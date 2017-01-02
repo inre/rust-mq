@@ -1,9 +1,14 @@
 use byteorder::{WriteBytesExt, BigEndian};
-use std::io::{BufWriter, Write, Cursor};
-use std::net::TcpStream;
+use std::io::Write;
 use {Packet, QoS, Error, Result, MAX_PAYLOAD_SIZE, SubscribeTopic, SubscribeReturnCodes};
 
-pub trait MqttWrite: WriteBytesExt {
+pub trait MqttWrite {
+    fn write_packet(&mut self, packet: &Packet) -> Result<()>;
+    fn write_mqtt_string(&mut self, string: &str) -> Result<()>;
+    fn write_remaining_length(&mut self, len: usize) -> Result<()>;
+}
+
+impl<T: Write> MqttWrite for T {
     fn write_packet(&mut self, packet: &Packet) -> Result<()> {
         match packet {
             &Packet::Connect(ref connect) => {
@@ -175,10 +180,6 @@ pub trait MqttWrite: WriteBytesExt {
         Ok(())
     }
 }
-
-impl MqttWrite for TcpStream {}
-impl MqttWrite for Cursor<Vec<u8>> {}
-impl<T: Write> MqttWrite for BufWriter<T> {}
 
 #[cfg(test)]
 mod test {

@@ -3,7 +3,7 @@ extern crate term;
 extern crate getopts;
 extern crate openssl;
 extern crate mqtt3;
-extern crate netopt;
 extern crate mqttc;
+extern crate url;
 
 pub mod client;

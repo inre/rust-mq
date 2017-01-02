@@ -6,12 +6,17 @@ description = "Mqttc is a client for the MQTT protocol."
 repository = "https://github.com/inre/rust-mq"
 license = "MIT"
 
+[features]
+default = ["ssl"]
+ssl = ["openssl"]
+
 [dependencies]
 log = "0.3"
 rand = "0.3"
 byteorder = "0.4"
 mqtt3 = "0.1" # { path = "../mqtt3" }
-netopt = "0.1" # { path = "../netopt" }
+url = "^1.2.4"
+openssl = { version = "0.9", optional = true, features = ["v101", "v102"] }
 
 [dev-dependencies]
 env_logger = "0.3"

@@ -1,9 +1,10 @@
 use std::collections::{HashMap, VecDeque};
 use std::io::{Write, ErrorKind};
-use std::net::{SocketAddr, ToSocketAddrs};
+use std::net::{ToSocketAddrs, Shutdown};
 use std::time::{Duration, Instant};
-use std::thread;
-use netopt::{Connection, NetworkOptions, NetworkStream};
+use std::{thread, result};
+use netopt::{HostAndPort, NetworkConnector, NetworkStream, TcpConnector, SslConnector, BoxedConnector};
+use url::Url;
 use rand::{self, Rng};
 use mqtt3::{MqttRead, MqttWrite, Message, QoS, SubscribeReturnCodes, SubscribeTopic};
 use mqtt3::{self, Protocol, Packet, ConnectReturnCode, PacketIdentifier, LastWill, ToTopicPath};
@@ -11,6 +12,18 @@ use error::{Error, Result};
 use sub::Subscription;
 use {PubSub, ClientState, ReconnectMethod, PubOpt, ToPayload, ToSubTopics, ToUnSubTopics};
 use store::Store;
+
+fn is_ssl(url: &Url) -> result::Result<bool, ()> {
+    match url.scheme() {
+        "tcp" | "mqtt" => Ok(true),
+        "tls" | "ssl" | "mqtts" => Ok(false),
+        _ => Err(()),
+    }
+}
+
+fn default_port(url: &Url) -> result::Result<u16, ()> {
+    is_ssl(url).map(|is_ssl| if is_ssl { 8883 } else { 1883 })
+}
 
 // #[derive(Clone)]
 pub struct ClientOptions {
@@ -115,22 +128,36 @@ impl ClientOptions {
         self
     }
 
-    pub fn connect<A: ToSocketAddrs>(mut self, addr: A, netopt: NetworkOptions) -> Result<Client> {
+    pub fn connect(self, url: &Url) -> Result<Client<BoxedConnector>> {
+        let is_ssl = try!(is_ssl(url).map_err(|_| Error::InvalidUrlScheme(url.clone())));
+        let host_port = try!(url.with_default_port(default_port)).to_owned();
+        let connector = TcpConnector::new();
+        let connector = if is_ssl {
+            BoxedConnector::new(try!(SslConnector::new(connector)))
+        } else {
+            BoxedConnector::new(connector)
+        };
+        self.connect_with(connector, &host_port)
+    }
+
+    pub fn connect_with<C: NetworkConnector + 'static>(mut self,
+                                                       connector: C,
+                                                       host_port: &HostAndPort)
+                                                       -> Result<Client<C>> {
         if self.client_id == None {
             self.generate_client_id();
         }
 
-        let addr = try!(addr.to_socket_addrs()).next().expect("Socket address is broken");
-
+        let addr = try!(host_port.to_socket_addrs()).next().unwrap();
         info!(" Connecting to {}", addr);
-        let (conn, _) = try!(self._reconnect(addr, &netopt));
+        let stream = try!(self._reconnect(&connector, host_port));
 
         let mut client = Client {
-            addr: addr,
+            connector: connector,
+            host_port: host_port.clone(),
             state: ClientState::Disconnected,
-            netopt: netopt,
             opts: self,
-            conn: conn,
+            stream: stream,
             session_present: false,
 
             // Queues
@@ -154,14 +181,13 @@ impl ClientOptions {
         Ok(client)
     }
 
-    fn _reconnect(&self,
-                  addr: SocketAddr,
-                  netopt: &NetworkOptions)
-                  -> Result<(Connection, NetworkStream)> {
-        let stream = try!(netopt.connect(addr));
+    fn _reconnect<C>(&self, connector: &C, host_port: &HostAndPort) -> Result<C::Stream>
+        where C: NetworkConnector
+    {
+        let stream = try!(connector.connect(host_port));
         stream.set_read_timeout(self.keep_alive).unwrap();
         stream.set_write_timeout(self.keep_alive).unwrap();
-        Ok((try!(Connection::new(&stream)), stream))
+        Ok(stream)
     }
 
     fn _generate_connect_packet(&self) -> Box<mqtt3::Connect> {
@@ -183,12 +209,12 @@ impl ClientOptions {
     }
 }
 
-pub struct Client {
-    addr: SocketAddr,
+pub struct Client<C: NetworkConnector> {
+    connector: C,
+    stream: C::Stream,
+    host_port: HostAndPort,
     state: ClientState,
-    netopt: NetworkOptions,
     opts: ClientOptions,
-    conn: Connection,
     session_present: bool,
 
     // Queues
@@ -207,7 +233,7 @@ pub struct Client {
     subscriptions: HashMap<String, Subscription>,
 }
 
-impl PubSub for Client {
+impl<C: NetworkConnector> PubSub for Client<C> {
     fn publish<T, P>(&mut self, topic: T, payload: P, pubopt: PubOpt) -> Result<()>
         where T: ToTopicPath,
               P: ToPayload
@@ -232,7 +258,7 @@ impl PubSub for Client {
     }
 }
 
-impl Client {
+impl<C: NetworkConnector> Client<C> {
     pub fn await(&mut self) -> Result<Option<Box<Message>>> {
         loop {
             match self.accept() {
@@ -273,10 +299,10 @@ impl Client {
                     if elapsed >= keep_alive {
                         return Err(Error::Timeout);
                     }
-                    try!(self.conn.set_read_timeout(Some(keep_alive - elapsed)));
+                    try!(self.stream.set_read_timeout(Some(keep_alive - elapsed)));
                 }
 
-                match self.conn.read_packet() {
+                match self.stream.read_packet() {
                     Ok(packet) => {
                         match self._parse_packet(packet) {
                             Ok(message) => Ok(message),
@@ -351,8 +377,8 @@ impl Client {
             warn!("mqttc is already connected");
             return Ok(());
         };
-        let (conn, _) = try!(self.opts._reconnect(self.addr, &self.netopt));
-        self.conn = conn;
+        let stream = try!(self.opts._reconnect(&self.connector, &self.host_port));
+        self.stream = stream;
         try!(self._handshake());
 
         self._resubscribe();
@@ -464,8 +490,9 @@ impl Client {
                     Packet::Pubrel(pid) => {
                         if let Some(message) = self.incomming_rec.pop_front() {
                             if message.pid == Some(pid) {
-                                let message = if let Some(ref mut store) = self.opts
-                                                                               .incomming_store {
+                                let message = if let Some(ref mut store) =
+                                    self.opts
+                                        .incomming_store {
                                     try!(store.get(pid))
                                 } else {
                                     return Err(Error::IncommingStorageAbsent);
@@ -497,7 +524,7 @@ impl Client {
                                                 let sub = Subscription {
                                                     pid: subscribe.pid,
                                                     topic_path: try!(sub_topic.topic_path
-                                                                              .to_topic_path()),
+                                                        .to_topic_path()),
                                                     qos: qos,
                                                 };
                                                 self.subscriptions
@@ -674,9 +701,9 @@ impl Client {
 
     fn _resubscribe(&mut self) {
         let subs: Vec<SubscribeTopic> = self.subscriptions
-                                            .values()
-                                            .map(|sub| sub.to_subscribe_topic())
-                                            .collect();
+            .values()
+            .map(|sub| sub.to_subscribe_topic())
+            .collect();
         let _ = self._subscribe(subs);
     }
 
@@ -687,18 +714,18 @@ impl Client {
     #[inline]
     fn _write_packet(&mut self, packet: &Packet) {
         trace!("{:?}", packet);
-        self.conn.write_packet(&packet).unwrap();
+        self.stream.write_packet(&packet).unwrap();
     }
 
     fn _flush(&mut self) -> Result<()> {
         // TODO: in case of disconnection, trying to reconnect
-        try!(self.conn.flush());
+        try!(self.stream.flush());
         self.last_flush = Instant::now();
         Ok(())
     }
 
     fn _unbind(&mut self) {
-        let _ = self.conn.terminate();
+        let _ = self.stream.shutdown(Shutdown::Both);
         self.await_unsuback.clear();
         self.await_suback.clear();
         self.await_ping = false;
@@ -715,18 +742,17 @@ impl Client {
 
 #[cfg(test)]
 mod test {
-    use std::io::Cursor;
     use super::ClientOptions;
-    use netopt::{NetworkStream, NetworkOptions};
-    use netopt::mock::MockStream;
+    use netopt::mock::MockConnector;
+    use url::{Host, HostAndPort};
 
     #[test]
     fn client_connect_test() {
-        let stream = NetworkStream::Mock(MockStream::with_vec(vec![0b00100000, 0x02, 0x01, 0x00]));
+        let mock_data = vec![0b00100000, 0x02, 0x01, 0x00];
         let options = ClientOptions::new();
-        let mut netopt = NetworkOptions::new();
-        netopt.attach(stream);
+        let connector = MockConnector::with_read_data(mock_data);
         // Connect and create MQTT client
-        let client = options.connect("127.0.0.1:1883", netopt).unwrap();
+        let host_port = HostAndPort { host: Host::Domain("localhost".to_string()), port: 1883 };
+        let _client = options.connect_with(connector, &host_port).unwrap();
     }
 }

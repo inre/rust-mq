@@ -1,5 +1,4 @@
-use std::io::{BufReader, Read, Take, Cursor};
-use std::net::TcpStream;
+use std::io::Read;
 use std::sync::Arc;
 use byteorder::{ReadBytesExt, BigEndian};
 use {Error, Result, ConnectReturnCode, SubscribeTopic, SubscribeReturnCodes};
@@ -15,12 +14,24 @@ use mqtt::{
     Unsubscribe
 };
 
-pub trait MqttRead: ReadBytesExt {
+pub trait MqttRead {
+    fn read_packet(&mut self) -> Result<Packet> ;
+    fn read_connect(&mut self, _: Header) -> Result<Box<Connect>> ;
+    fn read_connack(&mut self, header: Header) -> Result<Connack> ;
+    fn read_publish(&mut self, header: Header) -> Result<Box<Publish>> ;
+    fn read_subscribe(&mut self, header: Header) -> Result<Box<Subscribe>> ;
+    fn read_suback(&mut self, header: Header) -> Result<Box<Suback>> ;
+    fn read_unsubscribe(&mut self, header: Header) -> Result<Box<Unsubscribe>> ;
+    fn read_payload(&mut self, len: usize) -> Result<Box<Vec<u8>>> ;
+    fn read_mqtt_string(&mut self) -> Result<String> ;
+    fn read_remaining_length(&mut self) -> Result<usize> ;
+}
+
+impl<T: Read> MqttRead for T {
     fn read_packet(&mut self) -> Result<Packet> {
         let hd = try!(self.read_u8());
         let len = try!(self.read_remaining_length());
         let header = try!(Header::new(hd, len));
-        //println!("Header {:?}", header);
         if len == 0 {
             // no payload packets
             return match header.typ {
@@ -254,11 +265,6 @@ pub trait MqttRead: ReadBytesExt {
         Ok(len)
     }
 }
-
-impl MqttRead for TcpStream {}
-impl MqttRead for Cursor<Vec<u8>> {}
-impl<T: Read> MqttRead for Take<T> where T: Read {}
-impl<T: Read> MqttRead for BufReader<T> {}
 
 #[cfg(test)]
 mod test {
