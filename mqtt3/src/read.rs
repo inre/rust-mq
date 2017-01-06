@@ -16,13 +16,13 @@ use mqtt::{
 
 pub trait MqttRead {
     fn read_packet(&mut self) -> Result<Packet> ;
-    fn read_connect(&mut self, _: Header) -> Result<Box<Connect>> ;
+    fn read_connect(&mut self, _: Header) -> Result<Connect> ;
     fn read_connack(&mut self, header: Header) -> Result<Connack> ;
-    fn read_publish(&mut self, header: Header) -> Result<Box<Publish>> ;
-    fn read_subscribe(&mut self, header: Header) -> Result<Box<Subscribe>> ;
-    fn read_suback(&mut self, header: Header) -> Result<Box<Suback>> ;
-    fn read_unsubscribe(&mut self, header: Header) -> Result<Box<Unsubscribe>> ;
-    fn read_payload(&mut self, len: usize) -> Result<Box<Vec<u8>>> ;
+    fn read_publish(&mut self, header: Header) -> Result<Publish> ;
+    fn read_subscribe(&mut self, header: Header) -> Result<Subscribe> ;
+    fn read_suback(&mut self, header: Header) -> Result<Suback> ;
+    fn read_unsubscribe(&mut self, header: Header) -> Result<Unsubscribe> ;
+    fn read_payload(&mut self, len: usize) -> Result<Vec<u8>> ;
     fn read_mqtt_string(&mut self) -> Result<String> ;
     fn read_remaining_length(&mut self) -> Result<usize> ;
 }
@@ -90,7 +90,7 @@ impl<T: Read> MqttRead for T {
         }
     }
 
-    fn read_connect(&mut self, _: Header) -> Result<Box<Connect>> {
+    fn read_connect(&mut self, _: Header) -> Result<Connect> {
         let protocol_name = try!(self.read_mqtt_string());
         let protocol_level = try!(self.read_u8());
         let protocol = try!(Protocol::new(protocol_name.as_ref(), protocol_level));
@@ -129,17 +129,15 @@ impl<T: Read> MqttRead for T {
             _ => Some(try!(self.read_mqtt_string()))
         };
 
-        Ok(Box::new(
-            Connect {
-                protocol: protocol,
-                keep_alive: keep_alive,
-                client_id: client_id,
-                clean_session: (connect_flags & 0b10) != 0,
-                last_will: last_will,
-                username: username,
-                password: password
-            }
-        ))
+        Ok(Connect {
+            protocol: protocol,
+            keep_alive: keep_alive,
+            client_id: client_id,
+            clean_session: (connect_flags & 0b10) != 0,
+            last_will: last_will,
+            username: username,
+            password: password
+        })
     }
 
     fn read_connack(&mut self, header: Header) -> Result<Connack> {
@@ -154,7 +152,7 @@ impl<T: Read> MqttRead for T {
         })
     }
 
-    fn read_publish(&mut self, header: Header) -> Result<Box<Publish>> {
+    fn read_publish(&mut self, header: Header) -> Result<Publish> {
         let topic_name = self.read_mqtt_string();
         // Packet identifier exists where QoS > 0
         let pid = if header.qos().unwrap() != QoS::AtMostOnce {
@@ -165,19 +163,17 @@ impl<T: Read> MqttRead for T {
         let mut payload = Vec::new();
         try!(self.read_to_end(&mut payload));
 
-        Ok(Box::new(
-            Publish {
-                dup: header.dup(),
-                qos: try!(header.qos()),
-                retain: header.retain(),
-                topic_name: try!(topic_name),
-                pid: pid,
-                payload: Arc::new(payload)
-            }
-        ))
+        Ok(Publish {
+            dup: header.dup(),
+            qos: try!(header.qos()),
+            retain: header.retain(),
+            topic_name: try!(topic_name),
+            pid: pid,
+            payload: Arc::new(payload)
+        })
     }
 
-    fn read_subscribe(&mut self, header: Header) -> Result<Box<Subscribe>> {
+    fn read_subscribe(&mut self, header: Header) -> Result<Subscribe> {
         let pid = try!(self.read_u16::<BigEndian>());
         let mut remaining_bytes = header.len - 2;
         let mut topics = Vec::with_capacity(1);
@@ -189,13 +185,13 @@ impl<T: Read> MqttRead for T {
             topics.push(SubscribeTopic { topic_path: topic_filter, qos: try!(QoS::from_u8(requested_qod)) });
         };
 
-        Ok(Box::new(Subscribe {
+        Ok(Subscribe {
             pid: PacketIdentifier(pid),
             topics: topics
-        }))
+        })
     }
 
-    fn read_suback(&mut self, header: Header) -> Result<Box<Suback>> {
+    fn read_suback(&mut self, header: Header) -> Result<Suback> {
         let pid = try!(self.read_u16::<BigEndian>());
         let mut remaining_bytes = header.len - 2;
         let mut return_codes = Vec::with_capacity(remaining_bytes);
@@ -210,13 +206,13 @@ impl<T: Read> MqttRead for T {
             remaining_bytes -= 1
         };
 
-        Ok(Box::new(Suback {
+        Ok(Suback {
             pid: PacketIdentifier(pid),
             return_codes: return_codes
-        }))
+        })
     }
 
-    fn read_unsubscribe(&mut self, header: Header) -> Result<Box<Unsubscribe>> {
+    fn read_unsubscribe(&mut self, header: Header) -> Result<Unsubscribe> {
         let pid = try!(self.read_u16::<BigEndian>());
         let mut remaining_bytes = header.len - 2;
         let mut topics = Vec::with_capacity(1);
@@ -227,15 +223,15 @@ impl<T: Read> MqttRead for T {
             topics.push(topic_filter);
         };
 
-        Ok(Box::new(Unsubscribe {
+        Ok(Unsubscribe {
             pid: PacketIdentifier(pid),
             topics: topics
-        }))
+        })
     }
 
-    fn read_payload(&mut self, len: usize) -> Result<Box<Vec<u8>>> {
-        let mut payload = Box::new(Vec::with_capacity(len));
-        try!(self.take(len as u64).read_to_end(&mut *payload));
+    fn read_payload(&mut self, len: usize) -> Result<Vec<u8>> {
+        let mut payload = Vec::with_capacity(len);
+        try!(self.take(len as u64).read_to_end(&mut payload));
         Ok(payload)
     }
 
@@ -299,7 +295,7 @@ mod test {
 
         let packet = stream.read_packet().unwrap();
 
-        assert_eq!(packet, Packet::Connect(Box::new(Connect {
+        assert_eq!(packet, Packet::Connect(Connect {
             protocol: Protocol::MQTT(4),
             keep_alive: 10,
             client_id: "test".to_owned(),
@@ -312,7 +308,7 @@ mod test {
             }),
             username: Some("rust".to_owned()),
             password: Some("mq".to_owned())
-        })));
+        }));
     }
 
     #[test]
@@ -328,7 +324,7 @@ mod test {
 
         let packet = stream.read_packet().unwrap();
 
-        assert_eq!(packet, Packet::Connect(Box::new(Connect {
+        assert_eq!(packet, Packet::Connect(Connect {
             protocol: Protocol::MQIsdp(3),
             keep_alive: 60,
             client_id: "test".to_owned(),
@@ -336,7 +332,7 @@ mod test {
             last_will: None,
             username: None,
             password: None
-        })));
+        }));
     }
 
     #[test]
@@ -361,14 +357,14 @@ mod test {
 
         let packet = stream.read_packet().unwrap();
 
-        assert_eq!(packet, Packet::Publish(Box::new(Publish {
+        assert_eq!(packet, Packet::Publish(Publish {
             dup: false,
             qos: QoS::AtLeastOnce,
             retain: false,
             topic_name: "a/b".to_owned(),
             pid: Some(PacketIdentifier(10)),
             payload: Arc::new(vec![0xF1, 0xF2, 0xF3, 0xF4])
-        })));
+        }));
     }
 
     #[test]
@@ -381,14 +377,14 @@ mod test {
 
         let packet = stream.read_packet().unwrap();
 
-        assert_eq!(packet, Packet::Publish(Box::new(Publish {
+        assert_eq!(packet, Packet::Publish(Publish {
             dup: false,
             qos: QoS::AtMostOnce,
             retain: false,
             topic_name: "a/b".to_owned(),
             pid: None,
             payload: Arc::new(vec![0x01, 0x02])
-        })));
+        }));
     }
 
     #[test]
@@ -414,14 +410,14 @@ mod test {
 
         let packet = stream.read_packet().unwrap();
 
-        assert_eq!(packet, Packet::Subscribe(Box::new(Subscribe {
+        assert_eq!(packet, Packet::Subscribe(Subscribe {
             pid: PacketIdentifier(260),
             topics: vec![
                 SubscribeTopic { topic_path: "a/+".to_owned(), qos: QoS::AtMostOnce },
                 SubscribeTopic { topic_path: "#".to_owned(), qos: QoS::AtLeastOnce },
                 SubscribeTopic { topic_path: "a/b/c".to_owned(), qos: QoS::ExactlyOnce }
             ]
-        })));
+        }));
     }
 
     #[test]
@@ -436,14 +432,14 @@ mod test {
 
         let packet = stream.read_packet().unwrap();
 
-        assert_eq!(packet, Packet::Unsubscribe(Box::new(Unsubscribe {
+        assert_eq!(packet, Packet::Unsubscribe(Unsubscribe {
             pid: PacketIdentifier(15),
             topics: vec![
                 "a/+".to_owned(),
                 "#".to_owned(),
                 "a/b/c".to_owned()
             ]
-        })));
+        }));
     }
 
     #[test]
@@ -456,9 +452,9 @@ mod test {
 
         let packet = stream.read_packet().unwrap();
 
-        assert_eq!(packet, Packet::Suback(Box::new(Suback {
+        assert_eq!(packet, Packet::Suback(Suback {
             pid: PacketIdentifier(15),
             return_codes: vec![SubscribeReturnCodes::Success(QoS::AtLeastOnce), SubscribeReturnCodes::Failure]
-        })));
+        }));
     }
 }

@@ -197,7 +197,7 @@ mod test {
 
     #[test]
     fn write_packet_connect_mqtt_protocol_test() {
-        let connect = Packet::Connect(Box::new(Connect {
+        let connect = Packet::Connect(Connect {
             protocol: Protocol::MQTT(4),
             keep_alive: 10,
             client_id: "test".to_owned(),
@@ -210,7 +210,7 @@ mod test {
             }),
             username: Some("rust".to_owned()),
             password: Some("mq".to_owned())
-        }));
+        });
 
         let mut stream = Cursor::new(Vec::new());
         stream.write_packet(&connect).unwrap();
@@ -230,7 +230,7 @@ mod test {
 
     #[test]
     fn write_packet_connect_mqisdp_protocol_test() {
-        let connect = Packet::Connect(Box::new(Connect {
+        let connect = Packet::Connect(Connect {
             protocol: Protocol::MQIsdp(3),
             keep_alive: 60,
             client_id: "test".to_owned(),
@@ -238,7 +238,7 @@ mod test {
             last_will: None,
             username: None,
             password: None
-        }));
+        });
 
         let mut stream = Cursor::new(Vec::new());
         stream.write_packet(&connect).unwrap();
@@ -267,14 +267,14 @@ mod test {
 
     #[test]
     fn write_packet_publish_at_least_once_test() {
-        let publish = Packet::Publish(Box::new(Publish {
+        let publish = Packet::Publish(Publish {
             dup: false,
             qos: QoS::AtLeastOnce,
             retain: false,
             topic_name: "a/b".to_owned(),
             pid: Some(PacketIdentifier(10)),
             payload: Arc::new(vec![0xF1, 0xF2, 0xF3, 0xF4])
-        }));
+        });
 
         let mut stream = Cursor::new(Vec::new());
         stream.write_packet(&publish).unwrap();
@@ -284,14 +284,14 @@ mod test {
 
     #[test]
     fn write_packet_publish_at_most_once_test() {
-        let publish = Packet::Publish(Box::new(Publish {
+        let publish = Packet::Publish(Publish {
             dup: false,
             qos: QoS::AtMostOnce,
             retain: false,
             topic_name: "a/b".to_owned(),
             pid: None,
             payload: Arc::new(vec![0xE1, 0xE2, 0xE3, 0xE4])
-        }));
+        });
 
         let mut stream = Cursor::new(Vec::new());
         stream.write_packet(&publish).unwrap();
@@ -301,14 +301,14 @@ mod test {
 
     #[test]
     fn write_packet_subscribe_test() {
-        let subscribe = Packet::Subscribe(Box::new(Subscribe {
+        let subscribe = Packet::Subscribe(Subscribe {
             pid: PacketIdentifier(260),
             topics: vec![
                 SubscribeTopic { topic_path: "a/+".to_owned(), qos: QoS::AtMostOnce },
                 SubscribeTopic { topic_path: "#".to_owned(), qos: QoS::AtLeastOnce },
                 SubscribeTopic { topic_path: "a/b/c".to_owned(), qos: QoS::ExactlyOnce }
             ]
-        }));
+        });
 
         let mut stream = Cursor::new(Vec::new());
         stream.write_packet(&subscribe).unwrap();

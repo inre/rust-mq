@@ -13,54 +13,54 @@ pub struct Message {
 }
 
 impl Message {
-    pub fn from_pub(publish: Box<Publish>) -> Result<Box<Message>> {
+    pub fn from_pub(publish: Publish) -> Result<Message> {
         let topic = TopicPath::from(publish.topic_name.as_str());
         if topic.wildcards {
             return Err(Error::TopicNameMustNotContainWildcard);
         }
-        Ok(Box::new(Message {
+        Ok(Message {
             topic: topic,
             qos: publish.qos,
             retain: publish.retain,
             pid: publish.pid,
             payload: publish.payload.clone()
-        }))
+        })
     }
 
-    pub fn from_last_will(last_will: LastWill) -> Box<Message> {
+    pub fn from_last_will(last_will: LastWill) -> Message {
         let topic = TopicPath::from(last_will.topic);
 
-        Box::new(Message {
+        Message {
             topic: topic,
             qos: last_will.qos,
             retain: last_will.retain,
             pid: None,
             payload: Arc::new(last_will.message.into_bytes())
-        })
+        }
     }
 
-    pub fn to_pub(&self, qos: Option<QoS>, dup: bool) -> Box<Publish> {
+    pub fn to_pub(&self, qos: Option<QoS>, dup: bool) -> Publish {
         let qos = qos.unwrap_or(self.qos);
-        Box::new(Publish {
+        Publish {
             dup: dup,
             qos: qos,
             retain: self.retain,
             topic_name: self.topic.path.clone(),
             pid: self.pid,
             payload: self.payload.clone()
-        })
+        }
     }
 
-    pub fn transform(&self, pid: Option<PacketIdentifier>, qos: Option<QoS>) -> Box<Message> {
+    pub fn transform(&self, pid: Option<PacketIdentifier>, qos: Option<QoS>) -> Message {
         let pid = pid.or(self.pid);
         let qos = qos.unwrap_or(self.qos);
-        Box::new(Message {
+        Message {
             topic: self.topic.clone(),
             qos: qos,
             retain: self.retain,
             pid: pid,
             payload: self.payload.clone()
-        })
+        }
     }
 }
 
@@ -81,26 +81,26 @@ mod test {
         };
         let publish = msg.to_pub(None, false);
 
-        assert_eq!(publish, Box::new(Publish {
+        assert_eq!(publish, Publish {
             dup: false,
             qos: QoS::AtLeastOnce,
             retain: false,
             topic_name: "/a/b".to_owned(),
             pid: Some(PacketIdentifier(1)),
             payload: Arc::new(vec![0x80, 0x40])
-        }));
+        });
     }
 
     #[test]
     fn message_from_pub_test() {
-        let publish = Box::new(Publish {
+        let publish = Publish {
             dup: true,
             qos: QoS::ExactlyOnce,
             retain: true,
             topic_name: "/a/b/c".to_owned(),
             pid: Some(PacketIdentifier(2)),
             payload: Arc::new(vec![0x10, 0x20, 0x30])
-        });
+        };
         let msg = Message::from_pub(publish).unwrap();
 
         assert_eq!(msg.topic.path(), "/a/b/c".to_string());

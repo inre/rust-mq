@@ -20,7 +20,7 @@ fn main() {
     let mut writer = BufWriter::new(stream.try_clone().unwrap());
 
     // CONNECT -> CONNACK
-    let connect = Packet::Connect(Box::new(Connect {
+    let connect = Packet::Connect(Connect {
         protocol: Protocol::MQTT(4),
         keep_alive: 30,
         client_id: "rust-mq-example-sub".to_owned(),
@@ -28,7 +28,7 @@ fn main() {
         last_will: None,
         username: None,
         password: None
-    }));
+    });
     println!("{:?}", connect);
     writer.write_packet(&connect);
     writer.flush();
@@ -36,12 +36,12 @@ fn main() {
     println!("{:?}", packet);
 
     // SUBSCRIBE
-    let subscribe = Packet::Subscribe(Box::new(Subscribe {
+    let subscribe = Packet::Subscribe(Subscribe {
         pid: PacketIdentifier(260),
         topics: vec![
             mqtt3::SubscribeTopic { topic_path: "/a/b".to_owned(), qos: QoS::ExactlyOnce }
         ]
-    }));
+    });
     println!("{:?}", subscribe);
     writer.write_packet(&subscribe);
     writer.flush();

@@ -20,7 +20,7 @@ fn main() {
     let mut writer = BufWriter::new(stream.try_clone().unwrap());
 
     // CONNECT -> CONNACK
-    let connect = Packet::Connect(Box::new(Connect {
+    let connect = Packet::Connect(Connect {
         protocol: Protocol::MQTT(4),
         keep_alive: 30,
         client_id: "rust-mq-example-pub".to_owned(),
@@ -28,7 +28,7 @@ fn main() {
         last_will: None,
         username: None,
         password: None
-    }));
+    });
     println!("{:?}", connect);
     writer.write_packet(&connect);
     writer.flush();
@@ -36,14 +36,14 @@ fn main() {
     println!("{:?}", packet);
 
     // PUBLISH
-    let publish = Packet::Publish(Box::new(Publish {
+    let publish = Packet::Publish(Publish {
         dup: false,
         qos: QoS::AtLeastOnce,
         retain: false,
         topic_name: "/a/b".to_owned(),
         pid: Some(PacketIdentifier(10)),
         payload: Arc::new("Hello world".to_string().into_bytes())
-    }));
+    });
     println!("{:?}", publish);
     writer.write_packet(&publish);
     writer.flush();

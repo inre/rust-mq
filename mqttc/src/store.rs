@@ -5,8 +5,8 @@ use mqtt3::{Message, PacketIdentifier};
 pub type Result<T> = result::Result<T, Error>;
 
 pub trait Store {
-    fn put(&mut self, message: Box<Message>) -> Result<()>;
-    fn get(&mut self, pid: PacketIdentifier) -> Result<Box<Message>>;
+    fn put(&mut self, message: Message) -> Result<()>;
+    fn get(&mut self, pid: PacketIdentifier) -> Result<Message>;
     fn delete(&mut self, pid: PacketIdentifier) -> Result<()>;
 //    fn iter() -> Iterator<Message>;
 }
@@ -41,7 +41,7 @@ impl error::Error for Error {
     }
 }
 
-pub struct MemoryStorage(BTreeMap<PacketIdentifier, Box<Message>>);
+pub struct MemoryStorage(BTreeMap<PacketIdentifier, Message>);
 
 impl MemoryStorage {
     pub fn new() -> Box<MemoryStorage> {
@@ -50,12 +50,12 @@ impl MemoryStorage {
 }
 
 impl Store for MemoryStorage {
-    fn put(&mut self, message: Box<Message>) -> Result<()> {
+    fn put(&mut self, message: Message) -> Result<()> {
         self.0.insert(message.pid.unwrap(), message);
         Ok(())
     }
 
-    fn get(&mut self, pid: PacketIdentifier) -> Result<Box<Message>> {
+    fn get(&mut self, pid: PacketIdentifier) -> Result<Message> {
         match self.0.get(&pid) {
             Some(m) => Ok(m.clone()),
             None => Err(Error::NotFound(pid))

@@ -8,6 +8,7 @@ use url::Url;
 use rand::{self, Rng};
 use mqtt3::{MqttRead, MqttWrite, Message, QoS, SubscribeReturnCodes, SubscribeTopic};
 use mqtt3::{self, Protocol, Packet, ConnectReturnCode, PacketIdentifier, LastWill, ToTopicPath};
+use store::MemoryStorage;
 use error::{Error, Result};
 use sub::Subscription;
 use {PubSub, ClientState, ReconnectMethod, PubOpt, ToPayload, ToSubTopics, ToUnSubTopics};
@@ -51,8 +52,8 @@ impl ClientOptions {
             username: None,
             password: None,
             reconnect: ReconnectMethod::ForeverDisconnect,
-            incomming_store: None,
-            outgoing_store: None,
+            incomming_store: Some(MemoryStorage::new()),
+            outgoing_store: Some(MemoryStorage::new()),
         }
     }
 
@@ -190,14 +191,14 @@ impl ClientOptions {
         Ok(stream)
     }
 
-    fn _generate_connect_packet(&self) -> Box<mqtt3::Connect> {
+    fn _generate_connect_packet(&self) -> mqtt3::Connect {
         let keep_alive = if let Some(dur) = self.keep_alive {
             dur.as_secs() as u16
         } else {
             0
         };
 
-        Box::new(mqtt3::Connect {
+        mqtt3::Connect {
             protocol: self.protocol,
             keep_alive: keep_alive,
             client_id: self.client_id.clone().unwrap(),
@@ -205,7 +206,7 @@ impl ClientOptions {
             last_will: self.last_will.clone(),
             username: self.username.clone(),
             password: self.password.clone(),
-        })
+        }
     }
 }
 
@@ -221,14 +222,14 @@ pub struct Client<C: NetworkConnector> {
     last_flush: Instant,
     last_pid: PacketIdentifier,
     await_ping: bool,
-    incomming_pub: VecDeque<Box<Message>>, // QoS 1
-    incomming_rec: VecDeque<Box<Message>>, // QoS 2
+    incomming_pub: VecDeque<Message>, // QoS 1
+    incomming_rec: VecDeque<Message>, // QoS 2
     incomming_rel: VecDeque<PacketIdentifier>, // QoS 2
-    outgoing_ack: VecDeque<Box<Message>>, // QoS 1
-    outgoing_rec: VecDeque<Box<Message>>, // QoS 2
+    outgoing_ack: VecDeque<Message>, // QoS 1
+    outgoing_rec: VecDeque<Message>, // QoS 2
     outgoing_comp: VecDeque<PacketIdentifier>, // QoS 2
-    await_suback: VecDeque<Box<mqtt3::Subscribe>>,
-    await_unsuback: VecDeque<Box<mqtt3::Unsubscribe>>,
+    await_suback: VecDeque<mqtt3::Subscribe>,
+    await_unsuback: VecDeque<mqtt3::Unsubscribe>,
     // Subscriptions
     subscriptions: HashMap<String, Subscription>,
 }
@@ -259,7 +260,7 @@ impl<C: NetworkConnector> PubSub for Client<C> {
 }
 
 impl<C: NetworkConnector> Client<C> {
-    pub fn await(&mut self) -> Result<Option<Box<Message>>> {
+    pub fn await(&mut self) -> Result<Option<Message>> {
         loop {
             match self.accept() {
                 Ok(message) => {
@@ -290,7 +291,7 @@ impl<C: NetworkConnector> Client<C> {
         }
     }
 
-    pub fn accept(&mut self) -> Result<Option<Box<Message>>> {
+    pub fn accept(&mut self) -> Result<Option<Message>> {
         match self.state {
             ClientState::Connected | ClientState::Handshake => {
                 // Don't forget to send PING packets in time
@@ -430,7 +431,7 @@ impl<C: NetworkConnector> Client<C> {
         (self.await_unsuback.len() == 0)
     }
 
-    fn _parse_packet(&mut self, packet: Packet) -> Result<Option<Box<Message>>> {
+    fn _parse_packet(&mut self, packet: Packet) -> Result<Option<Message>> {
         trace!("{:?}", packet);
         match self.state {
             ClientState::Handshake => {
@@ -571,7 +572,7 @@ impl<C: NetworkConnector> Client<C> {
         }
     }
 
-    fn _handle_message(&mut self, message: Box<Message>) -> Result<Option<Box<Message>>> {
+    fn _handle_message(&mut self, message: Message) -> Result<Option<Message>> {
         debug!("       Publish {} {} < {} bytes",
                message.qos.to_u8(),
                message.topic.path(),
@@ -641,13 +642,13 @@ impl<C: NetworkConnector> Client<C> {
                                               payload: P,
                                               pubopt: PubOpt)
                                               -> Result<()> {
-        let mut message = Box::new(Message {
+        let mut message = Message {
             topic: try!(topic.to_topic_name()),
             qos: pubopt.qos(),
             retain: pubopt.is_retain(),
             pid: None,
             payload: payload.to_payload(),
-        });
+        };
 
         match message.qos {
             QoS::AtMostOnce => (),
@@ -677,10 +678,10 @@ impl<C: NetworkConnector> Client<C> {
 
     fn _subscribe<S: ToSubTopics>(&mut self, subs: S) -> Result<()> {
         let iter = try!(subs.to_subscribe_topics());
-        let subscribe = Box::new(mqtt3::Subscribe {
+        let subscribe = mqtt3::Subscribe {
             pid: self._next_pid(),
             topics: iter.collect(),
-        });
+        };
         debug!("     Subscribe {:?}", subscribe.topics);
         self.await_suback.push_back(subscribe.clone());
         self._write_packet(&Packet::Subscribe(subscribe));
@@ -689,10 +690,10 @@ impl<C: NetworkConnector> Client<C> {
 
     fn _unsubscribe<U: ToUnSubTopics>(&mut self, unsubs: U) -> Result<()> {
         let iter = try!(unsubs.to_unsubscribe_topics());
-        let unsubscribe = Box::new(mqtt3::Unsubscribe {
+        let unsubscribe = mqtt3::Unsubscribe {
             pid: self._next_pid(),
             topics: iter.collect(),
-        });
+        };
         debug!("   Unsubscribe {:?}", unsubscribe.topics);
         self.await_unsuback.push_back(unsubscribe.clone());
         self._write_packet(&Packet::Unsubscribe(unsubscribe));
