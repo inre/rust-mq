@@ -1,6 +1,7 @@
 use super::*;
-use std::{result, io, fmt, error};
-use mqtt3::{ConnectReturnCode, PacketIdentifier};
+use std::{self, result, io, fmt, error};
+use url;
+use mqtt3::ConnectReturnCode;
 use netopt::Error as NetoptError;
 use mqtt3::Error as MqttError;
 use store::Error as StorageError;

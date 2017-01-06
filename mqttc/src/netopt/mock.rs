@@ -1,7 +1,8 @@
 use super::*;
 use std::io::{self, Read, Write};
 use std::{cmp, mem};
-use std::net::ToSocketAddrs;
+use std::net::{self, ToSocketAddrs, SocketAddr};
+use std::time::Duration;
 
 #[derive(Clone, Debug)]
 pub struct MockStream {
@@ -93,7 +94,7 @@ impl NetworkStream for MockStream {
     }
 
     #[inline]
-    fn shutdown(&mut self, _how: Shutdown) -> io::Result<()> {
+    fn shutdown(&mut self, _how: net::Shutdown) -> io::Result<()> {
         Ok(())
     }
 }

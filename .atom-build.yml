@@ -1,0 +1,3 @@
+cmd: "rustup run stable cargo build"
+name: "cargo build (stable debug)"
+sh: true

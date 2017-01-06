@@ -1,7 +1,13 @@
-use super::*;
+use super::{NetworkStream, NetworkConnector, Result, Error};
+use super::tcp::TcpConnector;
+use ::url::HostAndPort;
+use ::openssl::{ssl};
 use std::fmt;
-use openssl::ssl::{self, SslMethod, SslConnectorBuilder};
-use url::{Host, HostAndPort};
+use std::io::{self, Read, Write};
+use std::net::{self, SocketAddr};
+use std::time::Duration;
+use openssl::ssl::{SslMethod, SslConnectorBuilder};
+use url::Host;
 
 pub use openssl::ssl::Error as SslError;
 
@@ -60,7 +66,7 @@ impl<S: NetworkStream + 'static> NetworkStream for SslStream<S> {
     }
 
     #[inline]
-    fn shutdown(&mut self, how: Shutdown) -> io::Result<()> {
+    fn shutdown(&mut self, how: net::Shutdown) -> io::Result<()> {
         self.0.get_mut().shutdown(how)
     }
 }

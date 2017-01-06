@@ -1,6 +1,8 @@
 use super::*;
-use std::{io, net, fmt};
-use std::net::ToSocketAddrs;
+use std::fmt;
+use std::io::{self, Read, Write};
+use std::net::{self, ToSocketAddrs, SocketAddr};
+use std::time::Duration;
 
 pub struct TcpStream(net::TcpStream);
 
@@ -70,7 +72,7 @@ impl NetworkStream for TcpStream {
     }
 
     #[inline]
-    fn shutdown(&mut self, how: Shutdown) -> io::Result<()> {
+    fn shutdown(&mut self, how: net::Shutdown) -> io::Result<()> {
         match self.0.shutdown(how) {
             Ok(_) => Ok(()),
             // see https://github.com/hyperium/hyper/issues/508
