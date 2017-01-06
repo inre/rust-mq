@@ -31,6 +31,7 @@ use std::sync::Arc;
 use std::ops;
 use std::time::Duration;
 pub use mqtt3::{QoS, ToTopicPath, TopicPath, SubscribeTopic, Topic, Message, PacketIdentifier};
+pub use store::{Store, MemoryStorage};
 
 const MAX_QOS: QoS = mqtt3::QoS::AtLeastOnce;
 

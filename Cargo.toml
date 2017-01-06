@@ -33,5 +33,5 @@ openssl = { version = "0.9", features = ["v101", "v102"] }
 log = "0.3"
 env_logger = "0.3"
 url = "^1.2.4"
-"mqtt3" = "0.1" # { path = "mqtt3" }
-"mqttc" = "0.1" # { path = "mqttc" }
+"mqtt3" = { path = "mqtt3" }
+"mqttc" = { path = "mqttc" }

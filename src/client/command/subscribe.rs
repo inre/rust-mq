@@ -6,9 +6,9 @@ use std::process::exit;
 use mqtt3::{self, LastWill, SubscribeTopic, QoS, Protocol};
 use url::{Host, HostAndPort};
 use mqttc::store;
-use mqttc::{PubSub, ClientOptions, ReconnectMethod, Error};
+use mqttc::{PubSub, ClientOptions, ReconnectMethod, Error, MemoryStorage};
 use mqttc::netopt::{BoxedConnector, TcpConnector, SslConnector};
-use super::{Command, LocalStorage};
+use super::Command;
 use client::logger::set_stdout_logger;
 
 #[derive(Clone)]
@@ -90,7 +90,7 @@ impl Command for SubscribeCommand {
         opts.set_keep_alive(self.keep_alive);
         opts.set_clean_session(self.clean_session);
         opts.set_last_will_opt(self.last_will.clone());
-        opts.set_incomming_store(LocalStorage::new());
+        opts.set_incomming_store(MemoryStorage::new());
 
         if self.reconnect {
             opts.set_reconnect(ReconnectMethod::ReconnectAfter(Duration::from_secs(1)));

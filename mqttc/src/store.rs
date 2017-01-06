@@ -1,6 +1,5 @@
-use std::result;
-use std::error;
-use std::fmt;
+use std::{error, fmt, result};
+use std::collections::BTreeMap;
 use mqtt3::{Message, PacketIdentifier};
 
 pub type Result<T> = result::Result<T, Error>;
@@ -39,5 +38,32 @@ impl error::Error for Error {
 
     fn cause(&self) -> Option<&error::Error> {
         None
+    }
+}
+
+pub struct MemoryStorage(BTreeMap<PacketIdentifier, Box<Message>>);
+
+impl MemoryStorage {
+    pub fn new() -> Box<MemoryStorage> {
+        Box::new(MemoryStorage(BTreeMap::new()))
+    }
+}
+
+impl Store for MemoryStorage {
+    fn put(&mut self, message: Box<Message>) -> Result<()> {
+        self.0.insert(message.pid.unwrap(), message);
+        Ok(())
+    }
+
+    fn get(&mut self, pid: PacketIdentifier) -> Result<Box<Message>> {
+        match self.0.get(&pid) {
+            Some(m) => Ok(m.clone()),
+            None => Err(Error::NotFound(pid))
+        }
+    }
+
+    fn delete(&mut self, pid: PacketIdentifier) -> Result<()> {
+        self.0.remove(&pid);
+        Ok(())
     }
 }

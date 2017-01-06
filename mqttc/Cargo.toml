@@ -14,7 +14,7 @@ ssl = ["openssl"]
 log = "0.3"
 rand = "0.3"
 byteorder = "0.4"
-mqtt3 = "0.1" # { path = "../mqtt3" }
+mqtt3 = { path = "../mqtt3" }
 url = "^1.2.4"
 openssl = { version = "0.9", optional = true, features = ["v101", "v102"] }
 

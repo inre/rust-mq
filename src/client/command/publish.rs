@@ -6,9 +6,9 @@ use std::process::exit;
 use openssl::ssl;
 use mqtt3::{QoS, Protocol};
 use url::{Host, HostAndPort};
-use mqttc::{PubSub, ClientOptions, PubOpt};
+use mqttc::{PubSub, ClientOptions, PubOpt, MemoryStorage};
 use mqttc::netopt::{TcpConnector, SslConnector, BoxedConnector};
-use super::{Command, LocalStorage};
+use super::Command;
 use client::logger::set_stdout_logger;
 
 #[derive(Clone)]
@@ -80,7 +80,7 @@ impl Command for PublishCommand {
         opts.set_protocol(self.protocol);
         opts.set_keep_alive(self.keep_alive);
         opts.set_clean_session(true);
-        opts.set_outgoing_store(LocalStorage::new());
+        opts.set_outgoing_store(MemoryStorage::new());
 
         if let Some(ref username) = self.username {
             opts.set_username(username.clone());
