@@ -210,7 +210,7 @@ impl ClientOptions {
     }
 }
 
-pub struct Client<C: NetworkConnector> {
+pub struct Client<C: NetworkConnector = BoxedConnector> {
     connector: C,
     stream: C::Stream,
     host_port: HostAndPort,
@@ -260,6 +260,29 @@ impl<C: NetworkConnector> PubSub for Client<C> {
 }
 
 impl<C: NetworkConnector> Client<C> {
+    pub fn into_boxed(self) -> Client<BoxedConnector> where C: 'static {
+        Client {
+            connector: BoxedConnector::new(self.connector),
+            stream: Box::new(self.stream),
+            host_port: self.host_port,
+            state: self.state,
+            opts: self.opts,
+            session_present: self.session_present,
+            last_flush: self.last_flush,
+            last_pid: self.last_pid,
+            await_ping: self.await_ping,
+            incomming_pub: self.incomming_pub,
+            incomming_rec: self.incomming_rec,
+            incomming_rel: self.incomming_rel,
+            outgoing_ack: self.outgoing_ack,
+            outgoing_rec: self.outgoing_rec,
+            outgoing_comp: self.outgoing_comp,
+            await_suback: self.await_suback,
+            await_unsuback: self.await_unsuback,
+            subscriptions: self.subscriptions,
+        }
+    }
+
     pub fn await(&mut self) -> Result<Option<Message>> {
         loop {
             match self.accept() {
