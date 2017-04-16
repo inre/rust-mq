@@ -10,7 +10,7 @@ use std::sync::Arc;
 fn main() {
     let mut args: Vec<_> = env::args().collect();
     if args.len() < 2 {
-        println!("Usage: crate run --example mqtt3_pub -- 127.0.0.1:1883");
+        println!("Usage: cargo run --example mqtt3_pub -- 127.0.0.1:1883");
         exit(1);
     }
     let ref address = args[1];
