@@ -200,11 +200,11 @@ fn print_legend() {
     t.fg(term::color::BRIGHT_GREEN).unwrap();
     write!(t, "        Legend ").unwrap();
     t.fg(term::color::BRIGHT_CYAN).unwrap();
-    write!(t, "QoS 1 ").unwrap();
+    write!(t, "QoS 0 ").unwrap();
     t.fg(term::color::BRIGHT_MAGENTA).unwrap();
-    write!(t, "QoS 2 ").unwrap();
+    write!(t, "QoS 1 ").unwrap();
     t.fg(term::color::BRIGHT_BLUE).unwrap();
-    writeln!(t, "QoS 3 ").unwrap();
+    writeln!(t, "QoS 2 ").unwrap();
     t.fg(term::color::BRIGHT_GREEN).unwrap();
     //writeln!(t, "Network").unwrap();
     //t.reset().unwrap();
