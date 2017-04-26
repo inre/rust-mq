@@ -28,6 +28,14 @@ pub struct ClientOptions {
 }
 
 impl ClientOptions {
+    /// A type used for Client settings
+    ///
+    /// - Protocol is set to MQTT(4)
+    /// - Keep alive` is set to 30 seconds
+    /// - `clean_session` is set to true
+    /// - `reconnect` is set to `ReconnectMethod::ForeverDisconnect`
+    ///
+    /// The rest of the options are set to None
     pub fn new() -> ClientOptions {
         ClientOptions {
             protocol: Protocol::MQTT(4),
