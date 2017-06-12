@@ -2,7 +2,7 @@ use std::net::TcpStream;
 use std::io;
 use std::sync::Arc;
 use std::path::Path;
-use openssl::ssl::{self, SslMethod, SSL_VERIFY_NONE};
+use openssl::ssl::{self, SslMethod, SSL_VERIFY_NONE, SSL_VERIFY_PEER, SSL_VERIFY_FAIL_IF_NO_PEER_CERT};
 use openssl::x509::X509FileType;
 
 pub type SslStream = ssl::SslStream<TcpStream>;
@@ -35,6 +35,17 @@ impl SslContext {
         try!(ctx.set_certificate_file(cert.as_ref(), X509FileType::PEM));
         try!(ctx.set_private_key_file(key.as_ref(), X509FileType::PEM));
         ctx.set_verify(SSL_VERIFY_NONE, None);
+        Ok(SslContext { inner: Arc::new(ctx) })
+    }
+
+    pub fn with_cert_and_key_and_ca<C, K, A>(cert: C, key: K, ca: A) -> Result<SslContext, SslError>
+    where C: AsRef<Path>, K: AsRef<Path>, A: AsRef<Path> {
+        let mut ctx = try!(ssl::SslContext::new(SslMethod::Sslv23));
+        try!(ctx.set_cipher_list("DEFAULT"));
+        try!(ctx.set_certificate_file(cert.as_ref(), X509FileType::PEM));
+        try!(ctx.set_private_key_file(key.as_ref(), X509FileType::PEM));
+        try!(ctx.set_CA_file(ca.as_ref()));
+        ctx.set_verify(SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, None);
         Ok(SslContext { inner: Arc::new(ctx) })
     }
 
