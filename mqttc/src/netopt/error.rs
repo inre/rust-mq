@@ -11,7 +11,7 @@ pub enum Error {
     #[cfg(feature = "ssl")]
     SslHandshake(::openssl::ssl::Error),
     DomainRequired,
-    Other(Box<std::error::Error>),
+    Other(Box<std::error::Error + Send>),
 }
 
 impl From<std::io::Error> for Error {
