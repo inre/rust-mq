@@ -16,6 +16,7 @@ pub use tcp::{
     NetworkReader
 };
 
+#[cfg(feature = "ssl")]
 pub use ssl::{
     SslContext,
     SslStream,
@@ -32,15 +33,29 @@ pub mod ssl {
     use std::net::TcpStream;
     use std::io;
     use std::error::Error;
+    use std::path::Path;
 
     pub type SslStream = MockStream;
-    pub type SslError = Error;
+    pub type SslError = Error + 'static;
 
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Clone, Default)]
     pub struct SslContext;
 
     impl SslContext {
+        pub fn new(_: SslContext) -> Self {
+            panic!("ssl disabled");
+        }
+
+        pub fn with_cert_and_key<C, K, E>(_: C, _: K) -> Result<SslContext, E>
+        where C: AsRef<Path>, K: AsRef<Path>, E: Error + 'static {
+            panic!("ssl disabled");
+        }
+
         pub fn accept(&self, _: TcpStream) -> Result<SslStream, io::Error> {
+            panic!("ssl disabled");
+        }
+
+        pub fn connect(&self, _: TcpStream) -> Result<SslStream, io::Error> {
             panic!("ssl disabled");
         }
     }

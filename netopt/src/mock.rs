@@ -1,4 +1,6 @@
 use std::io::{self, Cursor, Read, Write};
+use std::net::{SocketAddr, Shutdown};
+use std::time::Duration;
 use std::sync::{Mutex, Arc};
 
 pub type MockCursor = Cursor<Vec<u8>>;
@@ -51,6 +53,32 @@ impl MockStream {
         // swap cursors
         cur_read.get_mut().extend_from_slice(vec_write.as_slice());
         cur_write.get_mut().extend_from_slice(vec_read.as_slice());
+    }
+}
+
+impl MockStream {
+    pub fn try_clone(&self) -> io::Result<MockStream> {
+        unimplemented!()
+    }
+
+    pub fn peer_addr(&self) -> io::Result<SocketAddr> {
+        unimplemented!()
+    }
+
+    pub fn shutdown(&self, _: Shutdown) -> io::Result<()> {
+        unimplemented!()
+    }
+
+    pub fn set_read_timeout(&self, _: Option<Duration>) -> io::Result<()> {
+        unimplemented!()
+    }
+
+    pub fn set_write_timeout(&self, _: Option<Duration>) -> io::Result<()> {
+        unimplemented!()
+    }
+
+    pub fn get_ref(&self) -> Self {
+        unimplemented!()
     }
 }
 
