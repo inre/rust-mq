@@ -650,7 +650,7 @@ impl<C: NetworkConnector> Client<C> {
         match self.opts.reconnect {
             ReconnectMethod::ForeverDisconnect => false,
             ReconnectMethod::ReconnectAfter(dur) => {
-                info!("  Reconnect in {} seconds", dur.as_secs());
+                warn!("  Reconnect in {} seconds", dur.as_secs());
                 thread::sleep(dur);
                 let _ = self.reconnect();
                 true
@@ -760,7 +760,8 @@ impl<C: NetworkConnector> Client<C> {
         self.await_suback.clear();
         self.await_ping = false;
         self.state = ClientState::Disconnected;
-        info!("  Disconnected {}", self.opts.client_id.clone().unwrap());
+        trace!("  Disconnected {}", self.opts.client_id.clone().unwrap());
+        warn!("  Disconnected {}", self.opts.client_id.clone().unwrap());
     }
 
     #[inline]
