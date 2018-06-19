@@ -32,6 +32,12 @@ pub enum Error {
     Io(io::Error),
 }
 
+use std::marker::Send;
+unsafe impl Send for Error {}
+
+use std::marker::Sync;
+unsafe impl Sync for Error {}
+
 impl From<io::Error> for Error {
     fn from(err: io::Error) -> Error {
         Error::Io(err)

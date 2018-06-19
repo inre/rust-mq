@@ -26,7 +26,7 @@ fn default_port(url: &Url) -> result::Result<u16, ()> {
     is_ssl(url).map(|is_ssl| if is_ssl { 8883 } else { 1883 })
 }
 
-// #[derive(Clone)]
+#[derive(Clone)]
 pub struct ClientOptions {
     protocol: Protocol,
     keep_alive: Option<Duration>,
@@ -40,6 +40,7 @@ pub struct ClientOptions {
     incomming_store: Option<Box<Store + Send>>,
     outgoing_store: Option<Box<Store + Send>>,
 }
+
 
 impl ClientOptions {
     pub fn new() -> ClientOptions {
@@ -55,6 +56,10 @@ impl ClientOptions {
             incomming_store: Some(MemoryStorage::new()),
             outgoing_store: Some(MemoryStorage::new()),
         }
+    }
+
+    pub fn box_clone(&self) -> Box<Self> {
+        Box::new(self.clone())
     }
 
     pub fn set_keep_alive(&mut self, secs: u16) -> &mut ClientOptions {
@@ -646,7 +651,7 @@ impl<C: NetworkConnector> Client<C> {
         match self.opts.reconnect {
             ReconnectMethod::ForeverDisconnect => false,
             ReconnectMethod::ReconnectAfter(dur) => {
-                info!("  Reconnect in {} seconds", dur.as_secs());
+                warn!("  Reconnect in {} seconds", dur.as_secs());
                 thread::sleep(dur);
                 let _ = self.reconnect();
                 true
@@ -756,7 +761,8 @@ impl<C: NetworkConnector> Client<C> {
         self.await_suback.clear();
         self.await_ping = false;
         self.state = ClientState::Disconnected;
-        info!("  Disconnected {}", self.opts.client_id.clone().unwrap());
+        trace!("  Disconnected {}", self.opts.client_id.clone().unwrap());
+        warn!("  Disconnected {}", self.opts.client_id.clone().unwrap());
     }
 
     #[inline]

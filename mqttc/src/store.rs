@@ -9,6 +9,16 @@ pub trait Store {
     fn get(&mut self, pid: PacketIdentifier) -> Result<Message>;
     fn delete(&mut self, pid: PacketIdentifier) -> Result<()>;
 //    fn iter() -> Iterator<Message>;
+
+    fn box_clone(&self) -> Box<Store+Send+'static>;
+}
+
+
+impl Clone for Box<Store + Send>
+{
+    fn clone(&self) -> Box<Store+Send> {
+        self.box_clone()
+    }
 }
 
 #[derive(Debug)]
@@ -41,6 +51,7 @@ impl error::Error for Error {
     }
 }
 
+#[derive(Clone)]
 pub struct MemoryStorage(BTreeMap<PacketIdentifier, Message>);
 
 impl MemoryStorage {
@@ -65,5 +76,11 @@ impl Store for MemoryStorage {
     fn delete(&mut self, pid: PacketIdentifier) -> Result<()> {
         self.0.remove(&pid);
         Ok(())
+    }
+
+
+    fn box_clone(&self) -> Box<Store+Send+'static>
+    {
+        Box::new(self.clone())
     }
 }
