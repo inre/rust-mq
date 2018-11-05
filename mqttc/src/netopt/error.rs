@@ -33,7 +33,7 @@ impl<S> From<HandshakeError<S>> for Error {
         match err {
             HandshakeError::SetupFailure(err) => err.into(),
             HandshakeError::Failure(mid_stream) |
-            HandshakeError::Interrupted(mid_stream) => Error::SslHandshake(mid_stream.into_error()),
+            HandshakeError::WouldBlock(mid_stream) => Error::SslHandshake(mid_stream.into_error()),
         }
     }
 }

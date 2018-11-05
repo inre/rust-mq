@@ -1,7 +1,7 @@
 use std::process::exit;
 use getopts::Options;
-use openssl::ssl::{SslMethod, SslConnectorBuilder, SSL_VERIFY_NONE, SSL_VERIFY_PEER};
-use openssl::x509::X509_FILETYPE_PEM;
+use openssl::ssl::{SslMethod, SslFiletype, SslVerifyMode};
+use ::openssl::{ssl};
 use mqtt3::{LastWill, SubscribeTopic, QoS, Protocol};
 use super::command::{Command, SubscribeCommand, PublishCommand};
 
@@ -158,24 +158,23 @@ Defaults \
         let key = matches.opt_str("key");
         let cert = matches.opt_str("cert");
         let verify_mode = if matches.opt_present("no-verify") {
-            SSL_VERIFY_NONE
+            SslVerifyMode::NONE
         } else {
-            SSL_VERIFY_PEER
+            SslVerifyMode::PEER
         };
 
         let ssl_connector = if matches.opt_present("tls") {
-            let mut connector = SslConnectorBuilder::new(SslMethod::tls()).unwrap();
+            let mut connector = ssl::SslConnector::builder(SslMethod::tls()).unwrap();
             {
-                let mut context = connector.builder_mut();
-                context.set_verify(verify_mode);
+                connector.set_verify(verify_mode);
                 if let Some(ref cafile_path) = cafile {
-                    context.set_ca_file(cafile_path).unwrap();
+                    connector.set_ca_file(cafile_path).unwrap();
                 }
                 if let Some(ref key_path) = key {
-                    context.set_private_key_file(key_path, X509_FILETYPE_PEM).unwrap();
+                    connector.set_private_key_file(key_path, SslFiletype::PEM).unwrap();
                 }
                 if let Some(ref cert_path) = cert {
-                    context.set_certificate_file(cert_path, X509_FILETYPE_PEM).unwrap();
+                    connector.set_certificate_file(cert_path, SslFiletype::PEM).unwrap();
                 }
             }
             Some(connector.build())
@@ -349,24 +348,23 @@ Defaults \
         let key = matches.opt_str("key");
         let cert = matches.opt_str("cert");
         let verify_mode = if matches.opt_present("no-verify") {
-            SSL_VERIFY_NONE
+            SslVerifyMode::NONE
         } else {
-            SSL_VERIFY_PEER
+            SslVerifyMode::PEER
         };
 
         let ssl_connector = if matches.opt_present("tls") {
-            let mut connector = SslConnectorBuilder::new(SslMethod::tls()).unwrap();
+            let mut connector = ssl::SslConnector::builder(SslMethod::tls()).unwrap();
             {
-                let mut context = connector.builder_mut();
-                context.set_verify(verify_mode);
+                connector.set_verify(verify_mode);
                 if let Some(ref cafile_path) = cafile {
-                    context.set_ca_file(cafile_path).unwrap();
+                    connector.set_ca_file(cafile_path).unwrap();
                 }
                 if let Some(ref key_path) = key {
-                    context.set_private_key_file(key_path, X509_FILETYPE_PEM).unwrap();
+                    connector.set_private_key_file(key_path, SslFiletype::PEM).unwrap();
                 }
                 if let Some(ref cert_path) = cert {
-                    context.set_certificate_file(cert_path, X509_FILETYPE_PEM).unwrap();
+                    connector.set_certificate_file(cert_path, SslFiletype::PEM).unwrap();
                 }
             }
             Some(connector.build())

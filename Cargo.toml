@@ -29,7 +29,7 @@ path = "src/lib.rs"
 [dependencies]
 term = "0.2"
 getopts = "0.2"
-openssl = { version = "0.9", features = ["v101", "v102"] }
+openssl = { version = "0.10", features = ["v101", "v102"] }
 log = "0.3"
 env_logger = "0.3"
 url = "^1.2.4"

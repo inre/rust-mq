@@ -151,4 +151,4 @@ impl NetworkConnector for BoxedConnector {
 pub use self::tcp::{TcpStream, TcpListener, TcpConnector};
 
 #[cfg(feature = "ssl")]
-pub use self::ssl::{SslConnector, SslStream, SslError};
+pub use self::ssl::{SslStream, SslError, SslConnector};

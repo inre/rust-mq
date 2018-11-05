@@ -6,7 +6,7 @@ use std::fmt;
 use std::io::{self, Read, Write};
 use std::net::{self, SocketAddr};
 use std::time::Duration;
-use openssl::ssl::{SslMethod, SslConnectorBuilder};
+use openssl::ssl::{SslMethod};
 use url::Host;
 
 pub use openssl::ssl::Error as SslError;
@@ -86,7 +86,7 @@ impl<C: NetworkConnector> SslConnector<C> {
     }
 
     pub fn new(base_connector: C) -> Result<Self> {
-        let connector = try!(SslConnectorBuilder::new(SslMethod::tls())).build();
+        let connector = try!(ssl::SslConnector::builder(SslMethod::tls())).build();
         Ok(Self::new_with_ssl_connector(base_connector, connector))
     }
 }
