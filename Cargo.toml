@@ -28,11 +28,11 @@ name = "rustmq"
 path = "src/lib.rs"
 
 [dependencies]
-term = "0.2"
+term = "0.4"
 getopts = "0.2"
 openssl = { version = "0.10" }
 log = "0.3"
-env_logger = "0.3"
-"mqtt3" = "0.1" # { path = "mqtt3" }
-"netopt" = "0.1" # { path = "netopt" }
-"mqttc" = "0.1" # { path = "mqttc" }
+env_logger = "0.6"
+# "mqtt3" = "0.1" # { path = "mqtt3" }
+# "netopt" = "0.1" # { path = "netopt" }
+# "mqttc" = "0.1" # { path = "mqttc" }
