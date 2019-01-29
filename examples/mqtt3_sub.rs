@@ -2,20 +2,19 @@ extern crate mqtt3;
 
 use std::env;
 use std::net::TcpStream;
-use std::io::{Read, Write, BufReader, BufWriter};
+use std::io::{Write, BufReader, BufWriter};
 use std::process::exit;
-use mqtt3::{MqttRead, MqttWrite, Packet, Connect, Publish, Subscribe, Protocol, QoS, PacketIdentifier};
-use std::sync::Arc;
+use mqtt3::{MqttRead, MqttWrite, Packet, Connect, Subscribe, Protocol, QoS, PacketIdentifier};
 
 fn main() {
-    let mut args: Vec<_> = env::args().collect();
+    let args: Vec<_> = env::args().collect();
     if args.len() < 2 {
         println!("Usage: cargo run --example mqtt3_sub -- 127.0.0.1:1883");
         exit(1);
     }
     let ref address = args[1];
     println!("Establish connection to {}", address);
-    let mut stream = TcpStream::connect(address.as_str()).unwrap();
+    let stream = TcpStream::connect(address.as_str()).unwrap();
     let mut reader = BufReader::new(stream.try_clone().unwrap());
     let mut writer = BufWriter::new(stream.try_clone().unwrap());
 
@@ -30,8 +29,8 @@ fn main() {
         password: None
     }));
     println!("{:?}", connect);
-    writer.write_packet(&connect);
-    writer.flush();
+    writer.write_packet(&connect).unwrap();
+    writer.flush().unwrap();
     let packet = reader.read_packet().unwrap();
     println!("{:?}", packet);
 
@@ -43,8 +42,8 @@ fn main() {
         ]
     }));
     println!("{:?}", subscribe);
-    writer.write_packet(&subscribe);
-    writer.flush();
+    writer.write_packet(&subscribe).unwrap();
+    writer.flush().unwrap();
     let packet = reader.read_packet().unwrap();
     println!("{:?}", packet);
 
@@ -59,8 +58,8 @@ fn main() {
                     if let Some(pid) = publish.pid {
                         let packet = Packet::Puback(pid);
                         println!("{:?}", packet);
-                        writer.write_packet(&packet);
-                        writer.flush();
+                        writer.write_packet(&packet).unwrap();
+                        writer.flush().unwrap();
                     }
                 }
             },
