@@ -30,7 +30,7 @@ path = "src/lib.rs"
 [dependencies]
 term = "0.2"
 getopts = "0.2"
-openssl = { version = "0.7", features = ["tlsv1_1", "tlsv1_2"] }
+openssl = { version = "0.10" }
 log = "0.3"
 env_logger = "0.3"
 "mqtt3" = "0.1" # { path = "mqtt3" }
