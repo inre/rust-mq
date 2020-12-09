@@ -7,7 +7,12 @@ extern crate netopt;
 mod error;
 mod sub;
 mod client;
+mod conn;
 pub mod store;
+
+pub use conn::{
+    Connection
+};
 
 pub use error::{
     Error,

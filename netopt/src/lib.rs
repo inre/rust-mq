@@ -1,4 +1,3 @@
-extern crate mqtt3;
 #[cfg(feature = "ssl")]
 extern crate openssl;
 
@@ -6,7 +5,6 @@ extern crate openssl;
 mod ssl;
 mod tcp;
 pub mod mock;
-pub mod conn;
 
 pub use tcp::{
     NetworkOptions,
@@ -21,10 +19,6 @@ pub use ssl::{
     SslContext,
     SslStream,
     SslError
-};
-
-pub use conn::{
-    Connection
 };
 
 #[cfg(not(feature = "ssl"))]

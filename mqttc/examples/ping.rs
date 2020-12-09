@@ -10,7 +10,7 @@ use netopt::NetworkOptions;
 use mqttc::{Client, ClientOptions, ReconnectMethod};
 
 fn main() {
-    env_logger::init().unwrap();
+    env_logger::init();
     let mut args: Vec<_> = env::args().collect();
     if args.len() < 2 {
         println!("Usage: cargo run --example ping -- 127.0.0.1:1883");

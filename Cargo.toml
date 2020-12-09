@@ -30,9 +30,9 @@ path = "src/lib.rs"
 [dependencies]
 term = "0.4"
 getopts = "0.2"
-openssl = { version = "0.10" }
+openssl = { version = "0.10.3" }
 log = "0.3"
 env_logger = "0.6"
-"mqtt3" = "0.1" # { path = "mqtt3" }
-"netopt" = "0.1" # { path = "netopt" }
-"mqttc" = "0.1" # { path = "mqttc" }
+"mqtt3" = { path = "mqtt3" }
+"netopt" = { path = "netopt" }
+"mqttc" = { path = "mqttc" }

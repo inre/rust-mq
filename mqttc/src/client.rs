@@ -3,13 +3,13 @@ use std::io::{Write, ErrorKind};
 use std::net::{SocketAddr, ToSocketAddrs};
 use std::time::{Duration, Instant};
 use std::thread;
-use netopt::{Connection, NetworkOptions, NetworkStream};
+use netopt::{NetworkOptions, NetworkStream};
 use rand::{self, Rng};
 use mqtt3::{MqttRead, MqttWrite, Message, QoS, SubscribeReturnCodes, SubscribeTopic};
 use mqtt3::{self, Protocol, Packet, ConnectReturnCode, PacketIdentifier, LastWill, ToTopicPath};
 use error::{Error, Result};
 use sub::Subscription;
-use {PubSub, ClientState, ReconnectMethod, PubOpt, ToPayload, ToSubTopics, ToUnSubTopics};
+use {Connection, PubSub, ClientState, ReconnectMethod, PubOpt, ToPayload, ToSubTopics, ToUnSubTopics};
 use store::Store;
 
 // #[derive(Clone)]
@@ -103,9 +103,9 @@ impl ClientOptions {
                                                        message: String,
                                                        pub_opt: PubOpt)
                                                        -> Result<()> {
-        let topic_name = try!(topic.to_topic_name());
+        let topic_name = topic.to_topic_name()?;
         self.last_will = Some(LastWill {
-            topic: try!(topic_name.to_topic_name()).path(),
+            topic: topic_name.to_topic_name()?.path(),
             message: message,
             qos: pub_opt.qos(),
             retain: pub_opt.is_retain(),
@@ -128,10 +128,10 @@ impl ClientOptions {
             self.generate_client_id();
         }
 
-        let addr = try!(addr.to_socket_addrs()).next().expect("Socket address is broken");
+        let addr = addr.to_socket_addrs()?.next().expect("Socket address is broken");
 
         info!(" Connecting to {}", addr);
-        let (conn, _) = try!(self._reconnect(addr, &netopt));
+        let conn = self._reconnect(addr, &netopt)?;
 
         let mut client = Client {
             addr: addr,
@@ -157,7 +157,7 @@ impl ClientOptions {
         };
 
         // Send CONNECT then wait CONNACK
-        try!(client._handshake());
+        client._handshake()?;
 
         Ok(client)
     }
@@ -165,11 +165,11 @@ impl ClientOptions {
     fn _reconnect(&self,
                   addr: SocketAddr,
                   netopt: &NetworkOptions)
-                  -> Result<(Connection, NetworkStream)> {
-        let stream = try!(netopt.connect(addr));
+                  -> Result<Connection> {
+        let stream = netopt.connect(addr)?;
         stream.set_read_timeout(self.keep_alive).unwrap();
         stream.set_write_timeout(self.keep_alive).unwrap();
-        Ok((try!(Connection::new(&stream)), stream))
+        Ok(Connection::new(stream)?)
     }
 
     fn _generate_connect_packet(&self) -> Box<mqtt3::Connect> {
@@ -220,17 +220,17 @@ impl PubSub for Client {
         where T: ToTopicPath,
               P: ToPayload
     {
-        try!(self._publish(topic, payload, pubopt));
+        self._publish(topic, payload, pubopt)?;
         self._flush()
     }
 
     fn subscribe<S: ToSubTopics>(&mut self, subs: S) -> Result<()> {
-        try!(self._subscribe(subs));
+        self._subscribe(subs)?;
         self._flush()
     }
 
     fn unsubscribe<U: ToUnSubTopics>(&mut self, unsubs: U) -> Result<()> {
-        try!(self._unsubscribe(unsubs));
+        self._unsubscribe(unsubs)?;
         self._flush()
     }
 
@@ -281,7 +281,7 @@ impl Client {
                     if elapsed >= keep_alive {
                         return Err(Error::Timeout);
                     }
-                    try!(self.conn.set_read_timeout(Some(keep_alive - elapsed)));
+                    self.conn.set_read_timeout(Some(keep_alive - elapsed))?;
                 }
 
                 match self.conn.read_packet() {
@@ -359,9 +359,9 @@ impl Client {
             warn!("mqttc is already connected");
             return Ok(());
         };
-        let (conn, _) = try!(self.opts._reconnect(self.addr, &self.netopt));
+        let conn = self.opts._reconnect(self.addr, &self.netopt)?;
         self.conn = conn;
-        try!(self._handshake());
+        self._handshake()?;
 
         self._resubscribe();
 
@@ -379,10 +379,10 @@ impl Client {
         let same_pid = self.incomming_rel.pop_back();
         if same_pid == Some(pid) {
             self._write_packet(&Packet::Pubcomp(pid));
-            try!(self._flush());
+            self._flush()?;
 
             if let Some(ref mut store) = self.opts.incomming_store {
-                try!(store.delete(pid));
+                store.delete(pid)?;
                 Ok(())
             } else {
                 return Err(Error::IncommingStorageAbsent);
@@ -434,7 +434,7 @@ impl Client {
                 match packet {
                     Packet::Connack(_) => Err(Error::AlreadyConnected),
                     Packet::Publish(ref publish) => {
-                        let message = try!(Message::from_pub(publish.clone()));
+                        let message = Message::from_pub(publish.clone())?;
                         self._handle_message(message)
                     }
                     Packet::Puback(pid) => {
@@ -452,11 +452,11 @@ impl Client {
                         if let Some(message) = self.outgoing_rec.pop_front() {
                             if message.pid == Some(pid) {
                                 self._write_packet(&Packet::Pubrel(pid));
-                                try!(self._flush());
+                                self._flush()?;
 
                                 self.outgoing_comp.push_back(pid);
                                 if let Some(ref mut store) = self.opts.outgoing_store {
-                                    try!(store.delete(pid));
+                                    store.delete(pid)?;
                                 } else {
                                     return Err(Error::IncommingStorageAbsent);
                                 }
@@ -474,7 +474,7 @@ impl Client {
                             if message.pid == Some(pid) {
                                 let message = if let Some(ref mut store) = self.opts
                                                                                .incomming_store {
-                                    try!(store.get(pid))
+                                    store.get(pid)?
                                 } else {
                                     return Err(Error::IncommingStorageAbsent);
                                 };
@@ -504,8 +504,8 @@ impl Client {
                                             SubscribeReturnCodes::Success(qos) => {
                                                 let sub = Subscription {
                                                     pid: subscribe.pid,
-                                                    topic_path: try!(sub_topic.topic_path
-                                                                              .to_topic_path()),
+                                                    topic_path: sub_topic.topic_path
+                                                                              .to_topic_path()?,
                                                     qos: qos,
                                                 };
                                                 self.subscriptions
@@ -564,7 +564,7 @@ impl Client {
                 let pid = message.pid.unwrap();
                 // debug!("        Puback {}", pid.0);
                 self._write_packet(&Packet::Puback(pid));
-                try!(self._flush());
+                self._flush()?;
                 // FIXME: can be repeated
                 let _ = self.incomming_pub.pop_front();
 
@@ -575,13 +575,13 @@ impl Client {
                 let pid = message.pid.unwrap();
 
                 if let Some(ref mut store) = self.opts.incomming_store {
-                    try!(store.put(message));
+                    store.put(message)?;
                 } else {
                     return Err(Error::IncommingStorageAbsent);
                 }
 
                 self._write_packet(&Packet::Pubrec(pid));
-                try!(self._flush());
+                self._flush()?;
 
                 Ok(None)
             }
@@ -591,9 +591,9 @@ impl Client {
     fn _handshake(&mut self) -> Result<()> {
         self.state = ClientState::Handshake;
         // send CONNECT
-        try!(self._connect());
+        self._connect()?;
         // wait CONNACK
-        let _ = try!(self.await());
+        let _ = self.await()?;
         Ok(())
     }
 
@@ -623,7 +623,7 @@ impl Client {
                                               pubopt: PubOpt)
                                               -> Result<()> {
         let mut message = Box::new(Message {
-            topic: try!(topic.to_topic_name()),
+            topic: topic.to_topic_name()?,
             qos: pubopt.qos(),
             retain: pubopt.is_retain(),
             pid: None,
@@ -639,7 +639,7 @@ impl Client {
             QoS::ExactlyOnce => {
                 message.pid = Some(self._next_pid());
                 if let Some(ref mut store) = self.opts.outgoing_store {
-                    try!(store.put(message.clone()));
+                    store.put(message.clone())?;
                 } else {
                     return Err(Error::OutgoingStorageAbsent);
                 }
@@ -657,7 +657,7 @@ impl Client {
     }
 
     fn _subscribe<S: ToSubTopics>(&mut self, subs: S) -> Result<()> {
-        let iter = try!(subs.to_subscribe_topics());
+        let iter = subs.to_subscribe_topics()?;
         let subscribe = Box::new(mqtt3::Subscribe {
             pid: self._next_pid(),
             topics: iter.collect(),
@@ -669,7 +669,7 @@ impl Client {
     }
 
     fn _unsubscribe<U: ToUnSubTopics>(&mut self, unsubs: U) -> Result<()> {
-        let iter = try!(unsubs.to_unsubscribe_topics());
+        let iter = unsubs.to_unsubscribe_topics()?;
         let unsubscribe = Box::new(mqtt3::Unsubscribe {
             pid: self._next_pid(),
             topics: iter.collect(),
@@ -700,7 +700,7 @@ impl Client {
 
     fn _flush(&mut self) -> Result<()> {
         // TODO: in case of disconnection, trying to reconnect
-        try!(self.conn.flush());
+        self.conn.flush()?;
         self.last_flush = Instant::now();
         Ok(())
     }
@@ -730,7 +730,7 @@ mod test {
 
     #[test]
     fn client_connect_test() {
-        let stream = NetworkStream::Mock(MockStream::with_vec(vec![0b00100000, 0x02, 0x01, 0x00]));
+        let stream = MockStream::with_vec(vec![0b00100000, 0x02, 0x01, 0x00]);
         let options = ClientOptions::new();
         let mut netopt = NetworkOptions::new();
         netopt.attach(stream);

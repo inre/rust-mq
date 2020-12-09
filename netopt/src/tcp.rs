@@ -2,7 +2,6 @@ use std::net::{TcpListener, TcpStream, SocketAddr, ToSocketAddrs, Shutdown, Sock
 use std::io::{self, Read, Write, BufReader, BufWriter};
 use std::time::Duration;
 
-use mqtt3::{MqttRead, MqttWrite};
 use ssl::{SslContext, SslStream};
 use mock::MockStream;
 
@@ -14,19 +13,19 @@ use NetworkStream::{
 
 pub struct NetworkOptions {
     ssl: Option<SslContext>,
-    mock: Option<NetworkStream>
+    mock: Option<MockStream>
 }
 
 impl NetworkOptions {
     pub fn new() -> NetworkOptions {
         NetworkOptions {
-            ssl: None,
-            mock: None
+            ssl: None::<SslContext>,
+            mock: None::<MockStream>
         }
     }
 
-    pub fn attach(&mut self, stream: NetworkStream) -> &mut NetworkOptions {
-        self.mock = Some(stream); self
+    pub fn attach(&mut self, mock: MockStream) -> &mut NetworkOptions {
+        self.mock = Some(mock); self
     }
 
     pub fn tls(&mut self, ssl: SslContext) -> &mut NetworkOptions {
@@ -35,7 +34,7 @@ impl NetworkOptions {
 
     pub fn bind<A: ToSocketAddrs>(&self, addr: A) -> io::Result<NetworkListener> {
         Ok(NetworkListener {
-            tcp: try!(TcpListener::bind(addr)),
+            tcp: TcpListener::bind(addr)?,
             ssl: match self.ssl {
                 Some(ref ssl) => Some(ssl.clone()),
                 None => None
@@ -44,13 +43,13 @@ impl NetworkOptions {
     }
 
     pub fn connect<A: ToSocketAddrs>(&self, addr: A) -> io::Result<NetworkStream> {
-        if let Some(ref stream) = self.mock {
-            return Ok(try!(stream.try_clone()));
+        if let Some(ref mock) = self.mock {
+            return Ok(NetworkStream::Mock(mock.clone()));
         };
 
-        let stream = try!(TcpStream::connect(addr));
+        let stream = TcpStream::connect(addr)?;
         match self.ssl {
-            Some(ref ssl) => Ok(NetworkStream::Ssl(try!(ssl.connect(stream)))),
+            Some(ref ssl) => Ok(NetworkStream::Ssl(ssl.connect(stream)?)),
             None => Ok(NetworkStream::Tcp(stream))
         }
     }
@@ -63,7 +62,7 @@ pub struct NetworkListener {
 
 impl NetworkListener {
     pub fn accept(&mut self) -> io::Result<(NetworkStream, SocketAddr)> {
-        let (stream, addr) = try!(self.tcp.accept());
+        let (stream, addr) = self.tcp.accept()?;
         match self.ssl {
             Some(ref ssl) => {
                 match ssl.accept(stream) {
@@ -83,14 +82,6 @@ pub enum NetworkStream {
 }
 
 impl NetworkStream {
-    pub fn try_clone(&self) -> io::Result<NetworkStream> {
-        match *self {
-            Tcp(ref s) => Ok(Tcp(try!(s.try_clone()))),
-            Ssl(ref s) => Ok(Ssl(try!(s.try_clone()))),
-            Mock(ref s) => Ok(Mock(s.clone()))
-        }
-    }
-
     pub fn peer_addr(&self) -> io::Result<SocketAddr> {
         match *self {
             Tcp(ref s) => s.peer_addr(),
@@ -155,9 +146,6 @@ impl Write for NetworkStream {
 pub type NetworkReader = BufReader<NetworkStream>;
 pub type NetworkWriter = BufWriter<NetworkStream>;
 
-impl MqttRead for NetworkStream {}
-impl MqttWrite for NetworkStream {}
-
 #[cfg(test)]
 mod test {
     use std::net::Shutdown;
@@ -185,9 +173,9 @@ mod test {
 
     #[test]
     fn tcp_attach_test() {
-        let stream = NetworkStream::Mock(MockStream::with_vec(vec![0xFE, 0xFD]));
+        let mock = MockStream::with_vec(vec![0xFE, 0xFD]);
         let mut options = NetworkOptions::new();
-        options.attach(stream);
+        options.attach(mock);
         let mut client = options.connect("127.0.0.1:80").unwrap();
         let mut buf = Vec::new();
         client.read_to_end(&mut buf).unwrap();

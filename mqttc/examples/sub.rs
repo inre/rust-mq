@@ -10,7 +10,7 @@ use netopt::NetworkOptions;
 use mqttc::{PubSub, Client, ClientOptions, ReconnectMethod, PubOpt};
 
 fn main() {
-    env_logger::init().unwrap();
+    env_logger::init();
     let mut args: Vec<_> = env::args().collect();
     if args.len() < 3 {
         println!("Usage: RUST_LOG=main,mqttc cargo run --example sub -- 127.0.0.1:1883 /a/b/c");
