@@ -11,5 +11,5 @@ default = ["ssl"]
 ssl = ["openssl"]
 
 [dependencies]
-openssl = { version = "0.7", optional = true, features = ["tlsv1_1", "tlsv1_2"] }
+openssl = { version = "0.10", optional = true }
 mqtt3 = "0.1" # { path = "../mqtt3" }

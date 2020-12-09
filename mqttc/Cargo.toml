@@ -11,11 +11,11 @@ default = ["ssl"]
 ssl = ["netopt/ssl"]
 
 [dependencies]
-log = "0.3"
-rand = "0.3"
-byteorder = "0.4"
+log = "0.4"
+rand = "0.6"
+byteorder = "0.5"
 mqtt3 = "0.1" # { path = "../mqtt3" }
-netopt = { version = "0.1", default-features = false } # { path = "../netopt" }
+netopt = { version = "0.1.3", default-features = false } # { path = "../netopt" }
 
 [dev-dependencies]
-env_logger = "0.3"
+env_logger = "0.6"

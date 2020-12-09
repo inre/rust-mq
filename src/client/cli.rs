@@ -1,7 +1,6 @@
 use std::process::exit;
 use getopts::Options;
-use openssl::ssl::{SslMethod, SslContext, SslVerifyMode};
-use openssl::x509::X509FileType;
+use openssl::ssl::{SslMethod, SslContext, SslFiletype, SslVerifyMode};
 use mqtt3::{LastWill, SubscribeTopic, QoS, Protocol};
 use super::command::{Command, SubscribeCommand, PublishCommand};
 
@@ -133,9 +132,10 @@ impl CLI {
         let cert = matches.opt_str("cert");
         let ssl_method = if matches.opt_present("tls") {
             match matches.opt_str("tls").unwrap().as_ref() {
-                "1" => Some(SslMethod::Tlsv1),
-                "1.1" => Some(SslMethod::Tlsv1_1),
-                "1.2" => Some(SslMethod::Tlsv1_2),
+                // FIXME: TLS versions are ignored here
+                "1" => Some(SslMethod::tls()),
+                "1.1" => Some(SslMethod::tls()),
+                "1.2" => Some(SslMethod::tls()),
                 _ => {
                     self.cli_error("unsupported TLS version")
                 }
@@ -150,18 +150,18 @@ impl CLI {
         };
 
         let ssl_context = ssl_method.map(|ssl| {
-            let mut context = SslContext::new(ssl).unwrap();
-            context.set_verify(verify_mode, None);
+            let mut context = SslContext::builder(ssl).unwrap();
+            context.set_verify(verify_mode);
             if let Some(ref cafile_path) = cafile {
-                context.set_CA_file(cafile_path).unwrap();
+                context.set_ca_file(cafile_path).unwrap();
             }
             if let Some(ref key_path) = key {
-                context.set_private_key_file(key_path, X509FileType::PEM).unwrap();
+                context.set_private_key_file(key_path, SslFiletype::PEM).unwrap();
             }
             if let Some(ref cert_path) = cert {
-                context.set_certificate_file(cert_path, X509FileType::PEM).unwrap();
+                context.set_certificate_file(cert_path, SslFiletype::PEM).unwrap();
             }
-            context
+            context.build()
         });
 
         PublishCommand {
@@ -311,9 +311,10 @@ impl CLI {
         let cert = matches.opt_str("cert");
         let ssl_method = if matches.opt_present("tls") {
             match matches.opt_str("tls").unwrap().as_ref() {
-                "1" => Some(SslMethod::Tlsv1),
-                "1.1" => Some(SslMethod::Tlsv1_1),
-                "1.2" => Some(SslMethod::Tlsv1_2),
+                // FIXME: TLS versions are ignored here
+                "1" => Some(SslMethod::tls()),
+                "1.1" => Some(SslMethod::tls()),
+                "1.2" => Some(SslMethod::tls()),
                 _ => {
                     self.cli_error("unsupported TLS version")
                 }
@@ -328,18 +329,18 @@ impl CLI {
         };
 
         let ssl_context = ssl_method.map(|ssl| {
-            let mut context = SslContext::new(ssl).unwrap();
-            context.set_verify(verify_mode, None);
+            let mut context = SslContext::builder(ssl).unwrap();
+            context.set_verify(verify_mode);
             if let Some(ref cafile_path) = cafile {
-                context.set_CA_file(cafile_path).unwrap();
+                context.set_ca_file(cafile_path).unwrap();
             }
             if let Some(ref key_path) = key {
-                context.set_private_key_file(key_path, X509FileType::PEM).unwrap();
+                context.set_private_key_file(key_path, SslFiletype::PEM).unwrap();
             }
             if let Some(ref cert_path) = cert {
-                context.set_certificate_file(cert_path, X509FileType::PEM).unwrap();
+                context.set_certificate_file(cert_path, SslFiletype::PEM).unwrap();
             }
-            context
+            context.build()
         });
 
         let retain = false; //TODO: !matches.opt_present("no-retain");
